@@ -430,8 +430,12 @@ class Lean_Google_Login_Auth {
 	 * @return WP_User|WP_Error
 	 */
 	private static function create_user( string $email, array $claims, string $sub ) {
+		// WordPress stores user_login in a column capped at 60 characters, so the
+		// generated username must fit — base plus any collision suffix.
+		$max_len = 60;
+
 		$local = current( explode( '@', $email ) );
-		$base  = sanitize_user( (string) $local, true );
+		$base  = substr( sanitize_user( (string) $local, true ), 0, $max_len );
 		if ( '' === $base ) {
 			$base = 'user';
 		}
@@ -439,7 +443,8 @@ class Lean_Google_Login_Auth {
 		$username = $base;
 		$suffix   = 1;
 		while ( username_exists( $username ) ) {
-			$username = $base . $suffix;
+			$tail     = (string) $suffix;
+			$username = substr( $base, 0, $max_len - strlen( $tail ) ) . $tail;
 			++$suffix;
 		}
 

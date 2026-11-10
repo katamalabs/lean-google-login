@@ -290,6 +290,47 @@ class Test_Lean_Google_Login_Auth extends WP_UnitTestCase {
 		$this->assertSame( 'new-sub', (string) get_user_meta( $result->ID, Lean_Google_Login_Auth::META_SUB, true ) );
 	}
 
+	public function test_a_very_long_email_local_part_is_truncated_to_a_valid_username() {
+		update_option( Lean_Google_Login_Auth::OPTION_AUTO_CREATE, '1' );
+		$email = str_repeat( 'a', 61 ) . '@example.com';
+
+		$result = Lean_Google_Login_Auth::authenticate_claims(
+			$this->claims(
+				[
+					'email' => $email,
+					'sub'   => 'long-sub',
+				]
+			)
+		);
+		$this->assertInstanceOf( 'WP_User', $result );
+		$this->assertLessThanOrEqual( 60, strlen( $result->user_login ) );
+		$this->assertSame( $email, $result->user_email );
+	}
+
+	public function test_username_collisions_stay_within_the_login_length_limit() {
+		update_option( Lean_Google_Login_Auth::OPTION_AUTO_CREATE, '1' );
+		$base = str_repeat( 'b', 60 );
+		// Occupy the full-length base so provisioning must append a suffix.
+		$this->factory->user->create(
+			[
+				'user_login' => $base,
+				'user_email' => 'taken@other.test',
+			]
+		);
+
+		$result = Lean_Google_Login_Auth::authenticate_claims(
+			$this->claims(
+				[
+					'email' => $base . '@example.com',
+					'sub'   => 'collide-sub',
+				]
+			)
+		);
+		$this->assertInstanceOf( 'WP_User', $result );
+		$this->assertLessThanOrEqual( 60, strlen( $result->user_login ) );
+		$this->assertNotSame( $base, $result->user_login );
+	}
+
 	public function test_auto_created_user_respects_the_domain_allow_list() {
 		update_option( Lean_Google_Login_Auth::OPTION_AUTO_CREATE, '1' );
 		update_option( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS, 'allowed.com' );

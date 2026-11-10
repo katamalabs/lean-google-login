@@ -4,7 +4,7 @@ Tags: login, google, oauth, google-workspace, sso
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,9 +16,10 @@ Lean Google Login adds a **Sign in with Google** button to your WordPress login 
 
 **Everything is free.** There is no pro version, no paid add-ons, no account to create, and no upsell banners in the admin. Nothing phones home — the plugin makes no network requests other than the Google OAuth calls needed to sign a person in.
 
-* **Workspace domain limiting**: restrict sign-in to one or more Google Workspace domains. An account whose verified email (or Workspace `hd` claim) isn't in your list is turned away. Leave it blank to allow any verified Google account.
-* **Existing users by default**: people who already have a WordPress account sign in by matching their verified Google email. Creating accounts for new Google users is an explicit opt-in, with a role you choose.
-* **Account-takeover protection**: the Google account id (`sub`) is linked to the WordPress user on first sign-in, so a later login to the same email must come from the same Google account.
+* **Workspace domain limiting**: restrict sign-in to one or more Google Workspace domains, enforced on the Workspace `hd` claim — the membership signal Google documents — not on the email domain alone. An account whose `hd` isn't in your list is turned away. Leave it blank to allow any verified Google account.
+* **Existing users by default**: people who already have a WordPress account sign in by matching their verified Google email. A pre-existing account is auto-linked to a first sign-in only when Google is authoritative for the address (a Workspace or Gmail account). Creating accounts for new Google users is an explicit opt-in, with a role you choose.
+* **Account-takeover protection**: the Google account id (`sub`) is the primary key for an established link, so a returning user is matched by `sub` first and a later login to the same email must come from the same Google account.
+* **Honors your login policies**: core account eligibility (multisite spam/deleted and site membership) and the `wp_authenticate_user` policy filter that account-disable and 2FA plugins hook are enforced before a session is issued.
 * **Password login stays enabled**: the plugin only *adds* a button. Your normal username/password login keeps working, so there is no way to lock yourself out.
 * **Encrypted secret**: the OAuth client secret is AES-256 encrypted at rest, keyed to your site salts, and never echoed back to the browser.
 * **wp-config.php overrides**: pin the client ID, secret, or allowed domains in code instead of the database, so credentials can live in environment variables and never diverge between environments.
@@ -65,10 +66,20 @@ Yes, free. There is no pro version and no upsells.
 
 == Changelog ==
 
+= 0.2.0 =
+* Security: the Workspace domain allow-list is now enforced on the `hd` claim, not the email domain, so a matching email suffix no longer stands in for organizational membership. Email-domain matching is available via the `lean_google_login_allow_email_domain_match` filter for those who want the weaker policy.
+* Security: a pre-existing WordPress account is auto-linked to a first Google sign-in only when Google is authoritative for the address (Workspace `hd`, or a Gmail mailbox), closing an account-takeover path through a verified but externally hosted email. Overridable with the `lean_google_login_email_is_authoritative` filter.
+* Security: core account eligibility is enforced before a session is issued — the multisite spam/deleted and site-membership checks, and the `wp_authenticate_user` policy filter used by account-disable and 2FA plugins. Password authentication handlers are deliberately not replayed.
+* Security: a returning user is resolved by the stable `sub` first, so an email change no longer denies login or creates a duplicate account. A sign-in with no `sub` is rejected.
+* Security: an invalid, non-empty Allowed-domains setting no longer saves as empty (which silently removed the restriction); the previous value is kept and an error is shown. Clearing the field still removes the restriction.
+
 = 0.1.0 =
 * Initial release: "Sign in with Google" button on wp-login.php via the OAuth2 authorization-code flow, optional Workspace domain allow-list, optional auto-provisioning with a configurable role, Google `sub` account linking, encrypted client secret, and wp-config.php overrides.
 
 == Upgrade Notice ==
+
+= 0.2.0 =
+Security hardening of Workspace domain enforcement, first-time account linking, and login-policy handling. Review your Allowed-domains setting after upgrading: restriction is now enforced on the Workspace `hd` claim.
 
 = 0.1.0 =
 First release.
