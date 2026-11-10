@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Lean Google Login">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#13201a"/>
+      <stop offset="1" stop-color="#0a0f0c"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <path d="M128 42 L194 66 V127 C194 170 164 201 128 217 C92 201 62 170 62 127 V66 Z" fill="#7aa993"/>
+  <circle cx="128" cy="116" r="18" fill="#0f1a14"/>
+  <rect x="122" y="126" width="12" height="40" rx="6" fill="#0f1a14"/>
+</svg>

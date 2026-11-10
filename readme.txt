@@ -8,7 +8,7 @@ Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Free, no upsells, no telemetry. A "Sign in with Google" button for wp-login.php, with an optional Google Workspace domain allow-list. Password login stays on.
+A minimal, secure "Sign in with Google" button for WordPress, with an optional Google Workspace domain allow-list. No upsells, no telemetry.
 
 == Description ==
 
@@ -58,7 +58,17 @@ No. It uses only the non-sensitive openid / email / profile scopes, which need n
 
 Yes, free. There is no pro version and no upsells.
 
+== Screenshots ==
+
+1. Settings → Lean Google Login: paste your Google OAuth client ID and secret, copy the redirect URI into Google Cloud, limit sign-in to one or more Workspace domains, and choose whether new users are created and with which role.
+2. The "Sign in with Google" button on the WordPress login screen. Normal password login stays enabled alongside it.
+
 == Changelog ==
 
 = 0.1.0 =
 * Initial release: "Sign in with Google" button on wp-login.php via the OAuth2 authorization-code flow, optional Workspace domain allow-list, optional auto-provisioning with a configurable role, Google `sub` account linking, encrypted client secret, and wp-config.php overrides.
+
+== Upgrade Notice ==
+
+= 0.1.0 =
+First release.
