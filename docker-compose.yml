@@ -1,0 +1,28 @@
+services:
+  wordpress:
+    depends_on:
+      - db
+    build: .
+    restart: always
+    ports:
+      - 8083:80
+    environment:
+      WORDPRESS_DEBUG: true
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - .:/var/www/html/wp-content/plugins/lean-google-login
+      - ./logs/:/var/log/apache2
+
+  db:
+    image: mariadb:10.11
+    restart: always
+    ports:
+      - 3309:3306
+    environment:
+      MARIADB_ROOT_PASSWORD: somewordpress
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: wordpress

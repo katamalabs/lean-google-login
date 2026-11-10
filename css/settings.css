@@ -1,0 +1,26 @@
+/* Lean Google Login — settings screen. */
+
+.lgl-wrap .lgl-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 4px 20px 16px;
+	margin: 16px 0;
+	max-width: 760px;
+}
+
+.lgl-wrap .lgl-card h2 {
+	margin-top: 16px;
+}
+
+.lgl-wrap .lgl-clear-secret {
+	display: inline-block;
+	margin-left: 10px;
+	color: #646970;
+	font-size: 12px;
+}
+
+.lgl-wrap input[readonly].code {
+	background: #f6f7f7;
+	color: #3c434a;
+}
