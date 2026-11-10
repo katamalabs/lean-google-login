@@ -335,7 +335,11 @@ class Lean_Google_Login_Settings {
 			<h1><?php esc_html_e( 'Lean Google Login', 'lean-google-login' ); ?></h1>
 			<p class="description"><?php esc_html_e( 'Adds a "Sign in with Google" button to the login screen. Password login is left enabled.', 'lean-google-login' ); ?></p>
 
-			<?php settings_errors(); ?>
+			<?php
+			// WordPress auto-renders settings errors on a page added via
+			// add_options_page(), so settings_errors() is deliberately NOT called
+			// here — doing so would print "Settings saved." twice.
+			?>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'options.php' ) ); ?>">
 				<?php settings_fields( self::GROUP ); ?>
