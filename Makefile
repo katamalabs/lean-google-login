@@ -46,8 +46,8 @@ bash:  ## Runs bash shell in wordpress container
 
 .PHONY: test
 test:  ## Run tests in Docker (builds fresh each time)
+	@trap 'docker compose -f docker-compose.test.yml down' EXIT; \
 	docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
-	docker compose -f docker-compose.test.yml down
 
 .PHONY: test-clean
 test-clean:  ## Remove test containers and images

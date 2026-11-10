@@ -5,7 +5,9 @@ services:
     build: .
     restart: always
     ports:
-      - 8083:80
+      # Bound to loopback: a local dev stack with debug on and fixed credentials
+      # should not be reachable from the LAN.
+      - 127.0.0.1:8083:80
     environment:
       WORDPRESS_DEBUG: true
       WORDPRESS_DB_HOST: db:3306
@@ -20,7 +22,9 @@ services:
     image: mariadb:10.11
     restart: always
     ports:
-      - 3309:3306
+      # Loopback only; the wordpress service reaches the db over the internal
+      # compose network, so this port is for host-side debugging at most.
+      - 127.0.0.1:3309:3306
     environment:
       MARIADB_ROOT_PASSWORD: somewordpress
       MARIADB_DATABASE: wordpress

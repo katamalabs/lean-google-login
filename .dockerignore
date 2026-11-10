@@ -1,0 +1,28 @@
+# Keep the image's lockfile-installed dependencies and build context clean.
+# Dockerfile.test runs `composer install` from composer.json/composer.lock and
+# then `COPY . .`; without this file that copy would overwrite the installed
+# /app/vendor with whatever happens to be in the local tree, defeating the
+# point of installing strictly from the lockfile.
+vendor/
+node_modules/
+
+# Version control and CI metadata.
+.git/
+.github/
+.gitattributes
+.gitignore
+
+# Build / release artifacts.
+build/
+dist/
+*.zip
+
+# Local runtime output and editor/OS cruft.
+logs/
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# The audit report and any scratch files are not needed in the image.
+SECURITY-REVIEW.md

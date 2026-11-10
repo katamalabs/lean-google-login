@@ -15,6 +15,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
+          tools: composer
+
+      - name: Validate composer.json/lock 🔎
+        run: composer validate --strict --no-interaction
 
       - name: Linter 🧹
         run: make lint
