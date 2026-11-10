@@ -1,7 +1,9 @@
 /* Lean Google Login — the "Sign in with Google" button on wp-login.php. */
 
 .lgl-wrap {
-	margin-top: 16px;
+	/* Space above (from the password field) and below (before the
+	   Remember Me / Log In row WordPress renders next). */
+	margin: 20px 0 24px;
 }
 
 .lgl-divider {
