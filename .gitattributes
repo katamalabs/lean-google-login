@@ -1,6 +1,7 @@
 # Dev-only files excluded from `git archive` (used by `make build`).
 # WordPress.org marketing assets live in /assets in SVN, never in the plugin zip.
 /.DS_Store          export-ignore
+/.dockerignore      export-ignore
 /.editorconfig      export-ignore
 /.gitattributes     export-ignore
 /.github            export-ignore

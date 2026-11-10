@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Lean Google Login
- * Plugin URI: https://github.com/katamalabs/lean-google-login
+ * Plugin URI: https://github.com/pjaudiomv/lean-google-login
  * Description: Free, no upsells, no telemetry. Adds a "Sign in with Google" button to wp-login.php using the OAuth2 authorization-code flow, with an optional Google Workspace domain allow-list, optional auto-provisioning of new users, and wp-config.php overrides. Password login is never disabled.
  * Version: 0.1.0
  * Requires at least: 6.0
