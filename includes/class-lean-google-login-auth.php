@@ -12,10 +12,12 @@
  * post-login redirect target and enforces one-time use and expiry.
  *
  * The identity-to-user step, authenticate_claims(), is pure of HTTP and cookies
- * so it can be unit-tested directly: it gates on a verified email and the
- * optional domain allow-list, matches an existing user by email (binding the
- * Google `sub` to that account to block email-reassignment takeover), and
- * optionally provisions a new user when auto-create is enabled.
+ * so it can be unit-tested directly: it gates on a verified email, a non-empty
+ * stable `sub`, and the optional Workspace (`hd`) allow-list; resolves the user
+ * by that `sub` first (falling back to email only to auto-link a pre-existing
+ * account when Google is authoritative for the address); enforces core account
+ * eligibility before a session is issued; and optionally provisions a new user
+ * when auto-create is enabled.
  *
  * This plugin never disables password login — it only adds a button — so there
  * is no way to lock an administrator out of their own site.
@@ -164,32 +166,31 @@ class Lean_Google_Login_Auth {
 			return new WP_Error( 'lean_google_login_unverified', __( 'Google has not verified this email address, so it cannot be used to sign in.', 'lean-google-login' ) );
 		}
 
+		// The stable Google account id. It is the primary key for an established
+		// link, so a login with no `sub` can neither be matched nor bound.
+		$sub = isset( $claims['sub'] ) ? trim( (string) $claims['sub'] ) : '';
+		if ( '' === $sub ) {
+			return new WP_Error( 'lean_google_login_no_sub', __( 'Google did not return an account identifier.', 'lean-google-login' ) );
+		}
+
 		if ( ! self::domain_allowed( $claims, $email ) ) {
 			return new WP_Error( 'lean_google_login_domain', __( 'This email domain is not permitted to sign in here.', 'lean-google-login' ) );
 		}
 
-		$sub  = isset( $claims['sub'] ) ? (string) $claims['sub'] : '';
-		$user = get_user_by( 'email', $email );
-
-		if ( $user instanceof WP_User ) {
-			$linked = (string) get_user_meta( $user->ID, self::META_SUB, true );
-			if ( '' !== $linked ) {
-				if ( '' === $sub || ! hash_equals( $linked, $sub ) ) {
-					return new WP_Error( 'lean_google_login_sub_mismatch', __( 'This Google account does not match the WordPress account registered to that email address.', 'lean-google-login' ) );
-				}
-			} elseif ( '' !== $sub ) {
-				// First Google sign-in for a pre-existing account: bind the sub.
-				update_user_meta( $user->ID, self::META_SUB, $sub );
-			}
-		} else {
-			if ( ! Lean_Google_Login_Config::get_bool( self::OPTION_AUTO_CREATE, false ) ) {
-				return new WP_Error( 'lean_google_login_no_account', __( 'No WordPress account exists for that email address.', 'lean-google-login' ) );
-			}
-			$user = self::create_user( $email, $claims, $sub );
-			if ( is_wp_error( $user ) ) {
-				return $user;
-			}
+		$user = self::resolve_user( $claims, $email, $sub );
+		if ( is_wp_error( $user ) ) {
+			return $user;
 		}
+
+		// Enforce core account eligibility (multisite spam/deleted and site
+		// membership, plus the post-password policy filter that account-disable
+		// and 2FA plugins hook) before any session is issued. The password
+		// handlers are deliberately not replayed — see enforce_account_eligibility.
+		$eligible = self::enforce_account_eligibility( $user );
+		if ( is_wp_error( $eligible ) ) {
+			return $eligible;
+		}
+		$user = $eligible;
 
 		/**
 		 * Filter the authenticated user before the auth cookie is set. Return a
@@ -210,13 +211,157 @@ class Lean_Google_Login_Auth {
 	}
 
 	/**
+	 * Map a verified identity to a WordPress user. The link is keyed on the
+	 * stable `sub` first, so a user whose Google email later changes is still
+	 * recognized as themselves and never gets a duplicate account. A pre-existing
+	 * account is only ever auto-linked to a first-time identity when Google is
+	 * authoritative for the email; otherwise auto-provisioning (if enabled) makes
+	 * a fresh account.
+	 *
+	 * @param array<string, mixed> $claims The id_token claims.
+	 * @param string               $email  The sanitized email address.
+	 * @param string               $sub    The stable Google account id (non-empty).
+	 * @return WP_User|WP_Error
+	 */
+	private static function resolve_user( array $claims, string $email, string $sub ) {
+		$linked = self::find_user_by_sub( $sub );
+		if ( $linked instanceof WP_User ) {
+			return $linked;
+		}
+
+		$existing = get_user_by( 'email', $email );
+		if ( $existing instanceof WP_User ) {
+			$other = (string) get_user_meta( $existing->ID, self::META_SUB, true );
+			if ( '' !== $other ) {
+				// This email's account is already linked to a different Google
+				// account (had it been this one, find_user_by_sub would have hit).
+				return new WP_Error( 'lean_google_login_sub_mismatch', __( 'This Google account does not match the WordPress account registered to that email address.', 'lean-google-login' ) );
+			}
+
+			// First Google sign-in for a pre-existing account. Binding it hands
+			// that account to this Google identity, so only do it when Google is
+			// authoritative for the address: a merely "verified" third-party
+			// mailbox can change owner while the Google identity persists, which
+			// would let a later owner take over the WordPress account.
+			if ( ! self::google_is_authoritative( $claims, $email ) ) {
+				return new WP_Error( 'lean_google_login_link_unverified', __( 'This email address cannot be automatically linked to the existing account. Sign in to that account first and link Google from your profile.', 'lean-google-login' ) );
+			}
+
+			update_user_meta( $existing->ID, self::META_SUB, $sub );
+			return $existing;
+		}
+
+		if ( ! Lean_Google_Login_Config::get_bool( self::OPTION_AUTO_CREATE, false ) ) {
+			return new WP_Error( 'lean_google_login_no_account', __( 'No WordPress account exists for that email address.', 'lean-google-login' ) );
+		}
+
+		return self::create_user( $email, $claims, $sub );
+	}
+
+	/**
+	 * The WordPress user linked to this Google `sub`, or null. The oldest match
+	 * wins, so any duplicate accounts left by earlier email-first linking resolve
+	 * stably to the original.
+	 *
+	 * @param string $sub The stable Google account id.
+	 */
+	private static function find_user_by_sub( string $sub ): ?WP_User {
+		if ( '' === $sub ) {
+			return null;
+		}
+		$users = get_users(
+			[
+				'meta_key'   => self::META_SUB, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Identity lookup keyed on the stable Google sub; indexed by usermeta.
+				'meta_value' => $sub,           // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				'number'     => 1,
+				'orderby'    => 'ID',
+				'order'      => 'ASC',
+			]
+		);
+		return ( ! empty( $users ) && $users[0] instanceof WP_User ) ? $users[0] : null;
+	}
+
+	/**
+	 * Whether Google is authoritative for this verified email — Workspace
+	 * accounts (the domain named in `hd` is Google-managed) and consumer Google
+	 * accounts (Google owns the mailbox). A verified address outside these is not
+	 * trusted to seize a pre-existing WordPress account on a first sign-in.
+	 *
+	 * @param array<string, mixed> $claims The id_token claims.
+	 * @param string               $email  The sanitized email address.
+	 */
+	private static function google_is_authoritative( array $claims, string $email ): bool {
+		$hd = isset( $claims['hd'] ) ? trim( (string) $claims['hd'] ) : '';
+		if ( '' !== $hd ) {
+			return true;
+		}
+
+		$at            = strrchr( $email, '@' );
+		$domain        = false === $at ? '' : strtolower( substr( $at, 1 ) );
+		$authoritative = in_array( $domain, [ 'gmail.com', 'googlemail.com' ], true );
+
+		/**
+		 * Filter whether Google is authoritative for this verified email, i.e.
+		 * whether it may be auto-linked to a pre-existing WordPress account on a
+		 * first sign-in. Enable only for domains you know Google manages.
+		 *
+		 * @param bool                 $authoritative Whether the email is trusted for auto-linking.
+		 * @param array<string, mixed> $claims        The id_token claims.
+		 * @param string               $email         The sanitized email address.
+		 */
+		return (bool) apply_filters( 'lean_google_login_email_is_authoritative', $authoritative, $claims, $email );
+	}
+
+	/**
+	 * Apply core account eligibility to a resolved user before a session is
+	 * issued. This federated sign-in never runs the `authenticate` filter chain —
+	 * those handlers verify a password we do not have, and replaying them with an
+	 * empty password is both wrong and a bypass risk. Instead we run the checks
+	 * that are not password-bound: the multisite spam/deleted and membership
+	 * gates, and the `wp_authenticate_user` policy filter that account-disable,
+	 * suspension and 2FA plugins hook after a password is verified.
+	 *
+	 * @param WP_User $user The resolved user.
+	 * @return WP_User|WP_Error
+	 */
+	private static function enforce_account_eligibility( WP_User $user ) {
+		if ( function_exists( 'wp_authenticate_spam_check' ) ) {
+			$checked = wp_authenticate_spam_check( $user );
+			if ( is_wp_error( $checked ) ) {
+				return $checked;
+			}
+		}
+
+		if ( is_multisite() ) {
+			if ( 1 === (int) $user->deleted || 1 === (int) $user->spam ) {
+				return new WP_Error( 'lean_google_login_account_blocked', __( 'This account is not permitted to sign in.', 'lean-google-login' ) );
+			}
+			if ( ! is_user_member_of_blog( $user->ID, get_current_blog_id() ) ) {
+				return new WP_Error( 'lean_google_login_not_a_member', __( 'This account is not a member of this site.', 'lean-google-login' ) );
+			}
+		}
+
+		// Core applies this filter after a verified password; account-policy and
+		// 2FA plugins hook it to allow or deny a sign-in. We pass no password.
+		$checked = apply_filters( 'wp_authenticate_user', $user, '' );
+		if ( is_wp_error( $checked ) ) {
+			return $checked;
+		}
+		if ( ! $checked instanceof WP_User ) {
+			return new WP_Error( 'lean_google_login_rejected', __( 'Sign-in was rejected.', 'lean-google-login' ) );
+		}
+		return $checked;
+	}
+
+	/**
 	 * Whether the email in these claims is allowed by the domain allow-list. An
 	 * empty allow-list permits any verified Google account.
 	 *
-	 * Matching a verified email's domain suffix is sufficient: Google only
-	 * asserts email_verified for an address in a domain it manages. The `hd`
-	 * (hosted-domain) claim is accepted too, for Workspace accounts whose login
-	 * domain differs from the primary email domain.
+	 * Workspace membership is asserted by the `hd` (hosted-domain) claim, not by
+	 * the email domain: Google warns that a matching email domain alone does not
+	 * prove organizational membership. A matching verified email domain is
+	 * therefore accepted only when the `lean_google_login_allow_email_domain_match`
+	 * filter opts into that weaker policy.
 	 *
 	 * @param array<string, mixed> $claims The id_token claims.
 	 * @param string               $email  The sanitized email address.
@@ -227,18 +372,28 @@ class Lean_Google_Login_Auth {
 			return true;
 		}
 
-		$at           = strrchr( $email, '@' );
-		$email_domain = false === $at ? '' : strtolower( substr( $at, 1 ) );
-		$hd           = isset( $claims['hd'] ) ? strtolower( trim( (string) $claims['hd'] ) ) : '';
+		$hd = isset( $claims['hd'] ) ? strtolower( trim( (string) $claims['hd'] ) ) : '';
+		if ( '' !== $hd && in_array( $hd, $allowed, true ) ) {
+			return true;
+		}
 
-		foreach ( $allowed as $domain ) {
-			if ( '' !== $email_domain && $email_domain === $domain ) {
-				return true;
-			}
-			if ( '' !== $hd && $hd === $domain ) {
+		/**
+		 * Filter whether a matching verified email domain (with no corresponding
+		 * `hd` claim) also satisfies the allow-list. Off by default: this is a
+		 * weaker signal than Workspace membership.
+		 *
+		 * @param bool                 $allow  Whether email-domain matching is permitted.
+		 * @param array<string, mixed> $claims The id_token claims.
+		 * @param string               $email  The sanitized email address.
+		 */
+		if ( apply_filters( 'lean_google_login_allow_email_domain_match', false, $claims, $email ) ) {
+			$at           = strrchr( $email, '@' );
+			$email_domain = false === $at ? '' : strtolower( substr( $at, 1 ) );
+			if ( '' !== $email_domain && in_array( $email_domain, $allowed, true ) ) {
 				return true;
 			}
 		}
+
 		return false;
 	}
 

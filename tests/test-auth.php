@@ -16,6 +16,9 @@ class Test_Lean_Google_Login_Auth extends WP_UnitTestCase {
 			[
 				'email'          => 'alice@example.com',
 				'email_verified' => true,
+				// A Workspace identity: `hd` makes Google authoritative for the
+				// address, which is what the common paths assume.
+				'hd'             => 'example.com',
 				'sub'            => 'google-sub-1',
 				'given_name'     => 'Alice',
 				'family_name'    => 'Smith',
@@ -62,11 +65,46 @@ class Test_Lean_Google_Login_Auth extends WP_UnitTestCase {
 		$this->assertSame( 'lean_google_login_domain', $result->get_error_code() );
 	}
 
-	public function test_domain_in_the_allow_list_by_email_suffix_passes() {
+	public function test_domain_in_the_allow_list_by_hd_passes() {
 		update_option( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS, 'example.com, other.org' );
 		$user_id = $this->factory->user->create( [ 'user_email' => 'alice@example.com' ] );
 
 		$result = Lean_Google_Login_Auth::authenticate_claims( $this->claims() );
+		$this->assertInstanceOf( 'WP_User', $result );
+		$this->assertSame( $user_id, $result->ID );
+	}
+
+	public function test_a_matching_email_domain_without_hd_is_rejected() {
+		// Security: the email domain alone does not prove Workspace membership, so
+		// a verified address with no (or a different) `hd` must not pass.
+		update_option( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS, 'example.com' );
+		$this->factory->user->create( [ 'user_email' => 'alice@example.com' ] );
+
+		$result = Lean_Google_Login_Auth::authenticate_claims( $this->claims( [ 'hd' => '' ] ) );
+		$this->assertWPError( $result );
+		$this->assertSame( 'lean_google_login_domain', $result->get_error_code() );
+	}
+
+	public function test_a_wrong_hd_is_rejected_even_when_the_email_domain_matches() {
+		update_option( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS, 'example.com' );
+		$this->factory->user->create( [ 'user_email' => 'alice@example.com' ] );
+
+		$result = Lean_Google_Login_Auth::authenticate_claims( $this->claims( [ 'hd' => 'evil.example' ] ) );
+		$this->assertWPError( $result );
+		$this->assertSame( 'lean_google_login_domain', $result->get_error_code() );
+	}
+
+	public function test_email_domain_match_passes_when_the_opt_in_filter_is_enabled() {
+		update_option( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS, 'example.com' );
+		$user_id = $this->factory->user->create( [ 'user_email' => 'alice@example.com' ] );
+		// Already linked, so resolution turns on the allow-list alone, not the
+		// separate first-time-link authoritativeness check.
+		update_user_meta( $user_id, Lean_Google_Login_Auth::META_SUB, 'google-sub-1' );
+
+		add_filter( 'lean_google_login_allow_email_domain_match', '__return_true' );
+		$result = Lean_Google_Login_Auth::authenticate_claims( $this->claims( [ 'hd' => '' ] ) );
+		remove_filter( 'lean_google_login_allow_email_domain_match', '__return_true' );
+
 		$this->assertInstanceOf( 'WP_User', $result );
 		$this->assertSame( $user_id, $result->ID );
 	}
@@ -94,10 +132,12 @@ class Test_Lean_Google_Login_Auth extends WP_UnitTestCase {
 		$this->assertSame( $user_id, $result->ID );
 	}
 
-	public function test_domain_allowed_helper_is_case_insensitive() {
+	public function test_domain_allowed_helper_matches_hd_case_insensitively() {
 		update_option( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS, 'Example.COM' );
-		$this->assertTrue( Lean_Google_Login_Auth::domain_allowed( [], 'Alice@EXAMPLE.com' ) );
-		$this->assertFalse( Lean_Google_Login_Auth::domain_allowed( [], 'alice@nope.com' ) );
+		$this->assertTrue( Lean_Google_Login_Auth::domain_allowed( [ 'hd' => 'EXAMPLE.com' ], 'alice@mail.example' ) );
+		$this->assertFalse( Lean_Google_Login_Auth::domain_allowed( [ 'hd' => 'nope.com' ], 'alice@example.com' ) );
+		// The email domain alone, with no matching `hd`, does not satisfy the list.
+		$this->assertFalse( Lean_Google_Login_Auth::domain_allowed( [], 'Alice@EXAMPLE.com' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -129,6 +169,92 @@ class Test_Lean_Google_Login_Auth extends WP_UnitTestCase {
 		$result = Lean_Google_Login_Auth::authenticate_claims( $this->claims( [ 'sub' => 'original-sub' ] ) );
 		$this->assertInstanceOf( 'WP_User', $result );
 		$this->assertSame( $user_id, $result->ID );
+	}
+
+	public function test_claims_without_a_sub_are_rejected() {
+		$this->factory->user->create( [ 'user_email' => 'alice@example.com' ] );
+
+		$result = Lean_Google_Login_Auth::authenticate_claims( $this->claims( [ 'sub' => '' ] ) );
+		$this->assertWPError( $result );
+		$this->assertSame( 'lean_google_login_no_sub', $result->get_error_code() );
+	}
+
+	public function test_a_returning_user_is_resolved_by_sub_after_an_email_change() {
+		// The WordPress account is linked by sub; the Google email has since
+		// changed. The user must still resolve to the same account, not be denied
+		// or duplicated.
+		$user_id = $this->factory->user->create( [ 'user_email' => 'alice@example.com' ] );
+		update_user_meta( $user_id, Lean_Google_Login_Auth::META_SUB, 'stable-sub' );
+
+		$result = Lean_Google_Login_Auth::authenticate_claims(
+			$this->claims(
+				[
+					'email' => 'alice.new@example.com',
+					'sub'   => 'stable-sub',
+				]
+			)
+		);
+		$this->assertInstanceOf( 'WP_User', $result );
+		$this->assertSame( $user_id, $result->ID );
+	}
+
+	// -------------------------------------------------------------------------
+	// First-time linking safety (non-authoritative email)
+	// -------------------------------------------------------------------------
+
+	public function test_a_non_authoritative_email_cannot_auto_link_a_preexisting_account() {
+		// A verified but non-Google-authoritative address (no `hd`, not Gmail)
+		// must not seize an existing, unlinked WordPress account.
+		$this->factory->user->create( [ 'user_email' => 'owner@contractor.example' ] );
+
+		$result = Lean_Google_Login_Auth::authenticate_claims(
+			$this->claims(
+				[
+					'email' => 'owner@contractor.example',
+					'hd'    => '',
+					'sub'   => 'outsider-sub',
+				]
+			)
+		);
+		$this->assertWPError( $result );
+		$this->assertSame( 'lean_google_login_link_unverified', $result->get_error_code() );
+	}
+
+	public function test_a_gmail_identity_may_auto_link_a_preexisting_account() {
+		$user_id = $this->factory->user->create( [ 'user_email' => 'person@gmail.com' ] );
+
+		$result = Lean_Google_Login_Auth::authenticate_claims(
+			$this->claims(
+				[
+					'email' => 'person@gmail.com',
+					'hd'    => '',
+					'sub'   => 'gmail-sub',
+				]
+			)
+		);
+		$this->assertInstanceOf( 'WP_User', $result );
+		$this->assertSame( $user_id, $result->ID );
+		$this->assertSame( 'gmail-sub', (string) get_user_meta( $user_id, Lean_Google_Login_Auth::META_SUB, true ) );
+	}
+
+	// -------------------------------------------------------------------------
+	// Core account eligibility
+	// -------------------------------------------------------------------------
+
+	public function test_the_core_policy_filter_can_deny_a_disabled_account() {
+		// Account-disable / 2FA plugins hook wp_authenticate_user; the plugin must
+		// honour a veto there before issuing a session.
+		$this->factory->user->create( [ 'user_email' => 'alice@example.com' ] );
+
+		$deny = static function () {
+			return new WP_Error( 'account_disabled', 'This account is disabled.' );
+		};
+		add_filter( 'wp_authenticate_user', $deny );
+		$result = Lean_Google_Login_Auth::authenticate_claims( $this->claims() );
+		remove_filter( 'wp_authenticate_user', $deny );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'account_disabled', $result->get_error_code() );
 	}
 
 	// -------------------------------------------------------------------------

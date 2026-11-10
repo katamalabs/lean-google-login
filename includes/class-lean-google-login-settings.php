@@ -164,18 +164,46 @@ class Lean_Google_Login_Settings {
 	public static function sanitize_allowed_domains( $value ): string {
 		$value = is_string( $value ) ? $value : '';
 		$parts = preg_split( '/[\s,]+/', $value, -1, PREG_SPLIT_NO_EMPTY );
-		if ( ! is_array( $parts ) ) {
+		if ( ! is_array( $parts ) || empty( $parts ) ) {
+			// The field was cleared on purpose: no restriction.
 			return '';
 		}
 
 		$domains = [];
+		$invalid = [];
 		foreach ( $parts as $part ) {
 			$domain = strtolower( ltrim( trim( $part ), '@' ) );
+			if ( '' === $domain ) {
+				continue;
+			}
 			// A permissive hostname check: letters/digits/hyphens in dot-separated labels.
-			if ( '' !== $domain && preg_match( '/^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/', $domain ) ) {
+			if ( preg_match( '/^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/', $domain ) ) {
 				$domains[ $domain ] = true;
+			} else {
+				$invalid[] = $domain;
 			}
 		}
+
+		// A non-empty submission that normalizes to nothing would, if saved as an
+		// empty string, silently REMOVE the restriction and let every Google
+		// domain in. Refuse that: warn, and keep whatever was stored before. To
+		// lift the restriction the admin must clear the field entirely.
+		if ( ! empty( $invalid ) ) {
+			add_settings_error(
+				Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS,
+				'lean_google_login_invalid_domain',
+				sprintf(
+					/* translators: %s: the rejected entries. */
+					__( 'These allowed-domain entries are not valid hostnames and were ignored: %s. To remove the restriction entirely, clear the field.', 'lean-google-login' ),
+					esc_html( implode( ', ', $invalid ) )
+				)
+			);
+		}
+
+		if ( empty( $domains ) ) {
+			return (string) Lean_Google_Login_Config::stored( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS, '' );
+		}
+
 		return implode( ', ', array_keys( $domains ) );
 	}
 
