@@ -4,7 +4,7 @@ Tags: login, google, oauth, google-workspace, sso
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -66,20 +66,10 @@ Yes, free. There is no pro version and no upsells.
 
 == Changelog ==
 
-= 0.2.0 =
-* Security: the Workspace domain allow-list is now enforced on the `hd` claim, not the email domain, so a matching email suffix no longer stands in for organizational membership. Email-domain matching is available via the `lean_google_login_allow_email_domain_match` filter for those who want the weaker policy.
-* Security: a pre-existing WordPress account is auto-linked to a first Google sign-in only when Google is authoritative for the address (Workspace `hd`, or a Gmail mailbox), closing an account-takeover path through a verified but externally hosted email. Overridable with the `lean_google_login_email_is_authoritative` filter.
-* Security: core account eligibility is enforced before a session is issued — the multisite spam/deleted and site-membership checks, and the `wp_authenticate_user` policy filter used by account-disable and 2FA plugins. Password authentication handlers are deliberately not replayed.
-* Security: a returning user is resolved by the stable `sub` first, so an email change no longer denies login or creates a duplicate account. A sign-in with no `sub` is rejected.
-* Security: an invalid, non-empty Allowed-domains setting no longer saves as empty (which silently removed the restriction); the previous value is kept and an error is shown. Clearing the field still removes the restriction.
-
 = 0.1.0 =
 * Initial release: "Sign in with Google" button on wp-login.php via the OAuth2 authorization-code flow, optional Workspace domain allow-list, optional auto-provisioning with a configurable role, Google `sub` account linking, encrypted client secret, and wp-config.php overrides.
 
 == Upgrade Notice ==
-
-= 0.2.0 =
-Security hardening of Workspace domain enforcement, first-time account linking, and login-policy handling. Review your Allowed-domains setting after upgrading: restriction is now enforced on the Workspace `hd` claim.
 
 = 0.1.0 =
 First release.
