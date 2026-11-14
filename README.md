@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/banner-772x250.png" alt="Lean Google Login" width="772">
+  <img src="assets/banner-772x250.png" alt="Lean Sign in with Google" width="772">
 </p>
 
-# Lean Google Login
+# Lean Sign in with Google
 
-[![pull-request](https://github.com/katamalabs/lean-google-login/actions/workflows/pull-requests.yml/badge.svg)](https://github.com/katamalabs/lean-google-login/actions/workflows/pull-requests.yml)
+[![pull-request](https://github.com/katamalabs/lean-sign-in-with-google/actions/workflows/pull-requests.yml/badge.svg)](https://github.com/katamalabs/lean-sign-in-with-google/actions/workflows/pull-requests.yml)
 [![License: GPL v2](https://img.shields.io/badge/License-GPLv2-blue.svg)](LICENSE)
 
 A small WordPress plugin that adds a **Sign in with Google** button to the login screen, with an optional Google Workspace domain allow-list. Free, no upsells, no telemetry. A deliberately minimal, secure sibling to [Lean SMTP](https://github.com/katamalabs/lean-smtp).
@@ -34,7 +34,7 @@ Login needs only the **non-sensitive** `openid`, `email`, and `profile` scopes. 
 ## Setup
 
 1. In the [Google Cloud Console](https://console.cloud.google.com/), create an OAuth 2.0 Client ID of type **Web application**.
-2. In **Settings → Lean Google Login**, copy the shown **Authorized redirect URI** into your OAuth client's redirect URIs (exact match).
+2. In **Settings → Lean Sign in with Google**, copy the shown **Authorized redirect URI** into your OAuth client's redirect URIs (exact match).
 3. Paste the **Client ID** and **Client Secret**, save.
 4. Optionally set **Allowed domains** and the **new-user** behaviour.
 
@@ -55,7 +55,7 @@ make dev    # docker compose dev site at http://localhost:8083
 make lint   # phpcs, WordPress-Core standard (tabs, snake_case)
 make fmt    # phpcbf auto-fix
 make test   # phpunit in Docker
-make build  # git archive -> build/lean-google-login.zip
+make build  # git archive -> build/lean-sign-in-with-google.zip
 ```
 
 Run a single test: `docker compose -f docker-compose.test.yml run --rm test --filter test_name`.

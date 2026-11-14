@@ -1,6 +1,6 @@
 <?php
 /**
- * PHPUnit bootstrap file for Lean Google Login plugin tests.
+ * PHPUnit bootstrap file for Lean Sign in with Google plugin tests.
  *
  * Uses wp-phpunit/wp-phpunit (installed via Composer) as the test library.
  * WordPress core must be downloaded to WP_CORE_DIR (default: /tmp/wordpress).
@@ -26,7 +26,7 @@ define( 'LEAN_GOOGLE_LOGIN_TEST_PIN', 'pinned-value' );
  * Load the plugin being tested.
  */
 function lean_google_login_tests_manually_load_plugin() {
-	require dirname( __DIR__ ) . '/lean-google-login.php';
+	require dirname( __DIR__ ) . '/lean-sign-in-with-google.php';
 }
 tests_add_filter( 'muplugins_loaded', 'lean_google_login_tests_manually_load_plugin' );
 

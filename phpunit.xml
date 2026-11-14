@@ -8,7 +8,7 @@
 	convertWarningsToExceptions="true"
 >
 	<testsuites>
-		<testsuite name="lean-google-login">
+		<testsuite name="lean-sign-in-with-google">
 			<directory suffix=".php">./tests/</directory>
 		</testsuite>
 	</testsuites>

@@ -1,11 +1,11 @@
 <?php
 /**
- * Uninstall cleanup for Lean Google Login.
+ * Uninstall cleanup for Lean Sign in with Google.
  *
  * Removes the plugin's options, any leftover OAuth-state transients, and the
  * per-user Google account link meta.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {

@@ -1,6 +1,6 @@
 <?php
 /**
- * Settings → Lean Google Login: the OAuth client credentials, the optional
+ * Settings → Lean Sign in with Google: the OAuth client credentials, the optional
  * domain allow-list, and the auto-create / default-role options.
  *
  * Any setting can instead be pinned in wp-config.php (see
@@ -10,7 +10,7 @@
  * before. The field renderers and the register_setting / guard_constant pattern
  * are ports of Lean SMTP's.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Lean_Google_Login_Settings {
 
-	const PAGE  = 'lean-google-login';
+	const PAGE  = 'lean-sign-in-with-google';
 	const GROUP = 'lean-google-login-group';
 
 	/** Hook suffix of the settings screen, so assets load nowhere else. */
@@ -43,14 +43,14 @@ class Lean_Google_Login_Settings {
 	}
 
 	public static function settings_link( array $links ): array {
-		$links[] = '<a href="' . esc_url( self::url() ) . '">' . esc_html__( 'Settings', 'lean-google-login' ) . '</a>';
+		$links[] = '<a href="' . esc_url( self::url() ) . '">' . esc_html__( 'Settings', 'lean-sign-in-with-google' ) . '</a>';
 		return $links;
 	}
 
 	public static function admin_menu(): void {
 		self::$settings_hook = (string) add_options_page(
-			__( 'Lean Google Login', 'lean-google-login' ),
-			__( 'Lean Google Login', 'lean-google-login' ),
+			__( 'Lean Sign in with Google', 'lean-sign-in-with-google' ),
+			__( 'Lean Sign in with Google', 'lean-sign-in-with-google' ),
 			'manage_options',
 			self::PAGE,
 			[ static::class, 'settings_page' ]
@@ -194,7 +194,7 @@ class Lean_Google_Login_Settings {
 				'lean_google_login_invalid_domain',
 				sprintf(
 					/* translators: %s: the rejected entries. */
-					__( 'These allowed-domain entries are not valid hostnames and were ignored: %s. To remove the restriction entirely, clear the field.', 'lean-google-login' ),
+					__( 'These allowed-domain entries are not valid hostnames and were ignored: %s. To remove the restriction entirely, clear the field.', 'lean-sign-in-with-google' ),
 					esc_html( implode( ', ', $invalid ) )
 				)
 			);
@@ -208,14 +208,16 @@ class Lean_Google_Login_Settings {
 	}
 
 	/**
-	 * Keep the default-role setting to an existing role; fall back to empty (which
-	 * the auth layer resolves to WordPress's own default role).
+	 * Keep the default-role setting to an existing, non-privileged role; fall back
+	 * to empty (which the auth layer resolves to WordPress's own default role).
+	 * Privileged roles are rejected so auto-provisioning can never mint a site
+	 * administrator — see Lean_Google_Login_Auth::is_role_assignable().
 	 *
 	 * @param mixed $value Submitted value.
 	 */
 	public static function sanitize_role( $value ): string {
 		$role = is_string( $value ) ? sanitize_key( $value ) : '';
-		return ( '' !== $role && wp_roles()->is_role( $role ) ) ? $role : '';
+		return ( '' !== $role && Lean_Google_Login_Auth::is_role_assignable( $role ) ) ? $role : '';
 	}
 
 	// -------------------------------------------------------------------------
@@ -231,7 +233,7 @@ class Lean_Google_Login_Settings {
 			<?php
 			printf(
 				/* translators: %s: PHP constant name. */
-				esc_html__( 'Set in wp-config.php as %s — change it there.', 'lean-google-login' ),
+				esc_html__( 'Set in wp-config.php as %s — change it there.', 'lean-sign-in-with-google' ),
 				'<code>' . esc_html( Lean_Google_Login_Config::constant_name( $option ) ) . '</code>'
 			);
 			?>
@@ -271,7 +273,7 @@ class Lean_Google_Login_Settings {
 	 */
 	private static function secret_field( string $option, string $description = '' ): void {
 		$placeholder = Lean_Google_Login_Config::has_secret( $option )
-			? __( '••••••••  (leave blank to keep)', 'lean-google-login' )
+			? __( '••••••••  (leave blank to keep)', 'lean-sign-in-with-google' )
 			: '';
 		?>
 		<input type="password" id="<?php echo esc_attr( $option ); ?>" name="<?php echo esc_attr( $option ); ?>"
@@ -295,7 +297,7 @@ class Lean_Google_Login_Settings {
 		?>
 		<label class="lgl-clear-secret">
 			<input type="checkbox" name="<?php echo esc_attr( $option ); ?>__clear" value="1" />
-			<?php esc_html_e( 'Clear the saved value on save', 'lean-google-login' ); ?>
+			<?php esc_html_e( 'Clear the saved value on save', 'lean-sign-in-with-google' ); ?>
 		</label>
 		<?php
 	}
@@ -346,7 +348,9 @@ class Lean_Google_Login_Settings {
 	 */
 	private static function role_choices(): array {
 		$choices = [];
-		foreach ( get_editable_roles() as $slug => $details ) {
+		// Only non-privileged roles are offered: an anonymous Google sign-in must
+		// never be able to auto-provision an administrator or other site manager.
+		foreach ( Lean_Google_Login_Auth::assignable_roles() as $slug => $details ) {
 			$choices[ $slug ] = translate_user_role( $details['name'] );
 		}
 		return $choices;
@@ -360,8 +364,8 @@ class Lean_Google_Login_Settings {
 		$configured = Lean_Google_Login_Client::is_configured();
 		?>
 		<div class="wrap lgl-wrap">
-			<h1><?php esc_html_e( 'Lean Google Login', 'lean-google-login' ); ?></h1>
-			<p class="description"><?php esc_html_e( 'Adds a "Sign in with Google" button to the login screen. Password login is left enabled.', 'lean-google-login' ); ?></p>
+			<h1><?php esc_html_e( 'Lean Sign in with Google', 'lean-sign-in-with-google' ); ?></h1>
+			<p class="description"><?php esc_html_e( 'Adds a "Sign in with Google" button to the login screen. Password login is left enabled.', 'lean-sign-in-with-google' ); ?></p>
 
 			<?php
 			// WordPress auto-renders settings errors on a page added via
@@ -373,35 +377,35 @@ class Lean_Google_Login_Settings {
 				<?php settings_fields( self::GROUP ); ?>
 
 				<div class="lgl-card">
-					<h2><?php esc_html_e( 'Google OAuth client', 'lean-google-login' ); ?></h2>
+					<h2><?php esc_html_e( 'Google OAuth client', 'lean-sign-in-with-google' ); ?></h2>
 					<p class="description">
-						<?php esc_html_e( 'Create an OAuth 2.0 "Web application" client in the Google Cloud Console, then paste its credentials here. Only the non-sensitive openid / email / profile scopes are used, so no Google verification is required.', 'lean-google-login' ); ?>
+						<?php esc_html_e( 'Create an OAuth 2.0 "Web application" client in the Google Cloud Console, then paste its credentials here. Only the non-sensitive openid / email / profile scopes are used, so no Google verification is required.', 'lean-sign-in-with-google' ); ?>
 					</p>
 					<table class="form-table" role="presentation">
 						<tr>
-							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Client::OPTION_CLIENT_ID ); ?>"><?php esc_html_e( 'Client ID', 'lean-google-login' ); ?></label></th>
+							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Client::OPTION_CLIENT_ID ); ?>"><?php esc_html_e( 'Client ID', 'lean-sign-in-with-google' ); ?></label></th>
 							<td><?php self::text_field( Lean_Google_Login_Client::OPTION_CLIENT_ID, [ 'placeholder' => '1234567890-abc.apps.googleusercontent.com' ] ); ?></td>
 						</tr>
 						<tr>
-							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Client::OPTION_CLIENT_SECRET ); ?>"><?php esc_html_e( 'Client Secret', 'lean-google-login' ); ?></label></th>
+							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Client::OPTION_CLIENT_SECRET ); ?>"><?php esc_html_e( 'Client Secret', 'lean-sign-in-with-google' ); ?></label></th>
 							<td><?php self::secret_field( Lean_Google_Login_Client::OPTION_CLIENT_SECRET ); ?></td>
 						</tr>
 						<tr>
-							<th scope="row"><?php esc_html_e( 'Authorized redirect URI', 'lean-google-login' ); ?></th>
+							<th scope="row"><?php esc_html_e( 'Authorized redirect URI', 'lean-sign-in-with-google' ); ?></th>
 							<td>
 								<input type="text" class="regular-text code" readonly onfocus="this.select()"
 									value="<?php echo esc_attr( Lean_Google_Login_Client::redirect_uri() ); ?>" />
-								<p class="description"><?php esc_html_e( 'Add this exact URI to your OAuth client\'s "Authorized redirect URIs" in Google Cloud.', 'lean-google-login' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Add this exact URI to your OAuth client\'s "Authorized redirect URIs" in Google Cloud.', 'lean-sign-in-with-google' ); ?></p>
 							</td>
 						</tr>
 					</table>
 				</div>
 
 				<div class="lgl-card">
-					<h2><?php esc_html_e( 'Access', 'lean-google-login' ); ?></h2>
+					<h2><?php esc_html_e( 'Access', 'lean-sign-in-with-google' ); ?></h2>
 					<table class="form-table" role="presentation">
 						<tr>
-							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS ); ?>"><?php esc_html_e( 'Allowed domains', 'lean-google-login' ); ?></label></th>
+							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS ); ?>"><?php esc_html_e( 'Allowed domains', 'lean-sign-in-with-google' ); ?></label></th>
 							<td>
 								<?php
 								self::text_field(
@@ -409,28 +413,28 @@ class Lean_Google_Login_Settings {
 									[
 										'class'       => 'regular-text',
 										'placeholder' => 'example.com, example.org',
-										'description' => __( 'Comma-separated. Only Google accounts in these domains may sign in. Leave blank to allow any verified Google account.', 'lean-google-login' ),
+										'description' => __( 'Comma-separated. Only Google accounts in these domains may sign in. Leave blank to allow any verified Google account.', 'lean-sign-in-with-google' ),
 									]
 								);
 								?>
 							</td>
 						</tr>
 						<tr>
-							<th scope="row"><?php esc_html_e( 'New users', 'lean-google-login' ); ?></th>
+							<th scope="row"><?php esc_html_e( 'New users', 'lean-sign-in-with-google' ); ?></th>
 							<td>
-								<?php self::checkbox_field( Lean_Google_Login_Auth::OPTION_AUTO_CREATE, __( 'Create a WordPress account the first time an allowed Google user signs in', 'lean-google-login' ), false ); ?>
-								<p class="description"><?php esc_html_e( 'Off by default: only people who already have an account can sign in.', 'lean-google-login' ); ?></p>
+								<?php self::checkbox_field( Lean_Google_Login_Auth::OPTION_AUTO_CREATE, __( 'Create a WordPress account the first time an allowed Google user signs in', 'lean-sign-in-with-google' ), false ); ?>
+								<p class="description"><?php esc_html_e( 'Off by default: only people who already have an account can sign in.', 'lean-sign-in-with-google' ); ?></p>
 							</td>
 						</tr>
 						<tr>
-							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Auth::OPTION_DEFAULT_ROLE ); ?>"><?php esc_html_e( 'Role for new users', 'lean-google-login' ); ?></label></th>
+							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Auth::OPTION_DEFAULT_ROLE ); ?>"><?php esc_html_e( 'Role for new users', 'lean-sign-in-with-google' ); ?></label></th>
 							<td>
 								<?php
 								self::select_field(
 									Lean_Google_Login_Auth::OPTION_DEFAULT_ROLE,
 									self::role_choices(),
 									get_option( 'default_role', 'subscriber' ),
-									__( 'Applied only when new-user creation is enabled above.', 'lean-google-login' )
+									__( 'Applied only when new-user creation is enabled above.', 'lean-sign-in-with-google' )
 								);
 								?>
 							</td>
@@ -442,7 +446,7 @@ class Lean_Google_Login_Settings {
 			</form>
 
 			<?php if ( ! $configured ) : ?>
-				<p class="description"><?php esc_html_e( 'The sign-in button appears on the login screen once a client ID and secret are saved.', 'lean-google-login' ); ?></p>
+				<p class="description"><?php esc_html_e( 'The sign-in button appears on the login screen once a client ID and secret are saved.', 'lean-sign-in-with-google' ); ?></p>
 			<?php endif; ?>
 		</div>
 		<?php

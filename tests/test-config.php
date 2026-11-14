@@ -2,7 +2,7 @@
 /**
  * Tests for setting resolution (constant beats option) and secret decryption.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 class Test_Lean_Google_Login_Config extends WP_UnitTestCase {

@@ -15,7 +15,7 @@
  * `authorize_url()` and `claims_from_id_token()` are pure and deterministic, so
  * the consent round-trip is unit-tested without a browser or a network call.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -171,12 +171,12 @@ class Lean_Google_Login_Client {
 				? (string) $body['error_description']
 				: wp_remote_retrieve_response_message( $response );
 			/* translators: 1: HTTP status code, 2: Google error message. */
-			return new WP_Error( 'lean_google_login_exchange_http_' . $http, sprintf( __( 'Google refused the sign-in (HTTP %1$d): %2$s', 'lean-google-login' ), $http, $message ) );
+			return new WP_Error( 'lean_google_login_exchange_http_' . $http, sprintf( __( 'Google refused the sign-in (HTTP %1$d): %2$s', 'lean-sign-in-with-google' ), $http, $message ) );
 		}
 
 		$claims = self::claims_from_id_token( (string) $body['id_token'] );
 		if ( empty( $claims ) ) {
-			return new WP_Error( 'lean_google_login_no_claims', __( 'Google returned a sign-in token that could not be read.', 'lean-google-login' ) );
+			return new WP_Error( 'lean_google_login_no_claims', __( 'Google returned a sign-in token that could not be read.', 'lean-sign-in-with-google' ) );
 		}
 
 		return $claims;

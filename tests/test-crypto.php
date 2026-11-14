@@ -2,7 +2,7 @@
 /**
  * Tests for the secret-at-rest crypto.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 class Test_Lean_Google_Login_Crypto extends WP_UnitTestCase {
