@@ -136,11 +136,11 @@ class Lean_Sign_In_With_Google_Auth {
 
 		wp_set_current_user( $user->ID );
 		wp_set_auth_cookie( $user->ID );
-		do_action( 'wp_login', $user->user_login, $user );
+		do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Intentionally firing WordPress core's own wp_login action so other plugins run on a Google sign-in.
 
 		$dest = '' !== $redirect_to ? $redirect_to : admin_url();
 		/** This filter is documented in wp-login.php */
-		$dest = apply_filters( 'login_redirect', $dest, $redirect_to, $user );
+		$dest = apply_filters( 'login_redirect', $dest, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Intentionally applying WordPress core's login_redirect filter so redirect-customizing plugins work.
 		wp_safe_redirect( $dest );
 		exit;
 	}
@@ -343,7 +343,7 @@ class Lean_Sign_In_With_Google_Auth {
 
 		// Core applies this filter after a verified password; account-policy and
 		// 2FA plugins hook it to allow or deny a sign-in. We pass no password.
-		$checked = apply_filters( 'wp_authenticate_user', $user, '' );
+		$checked = apply_filters( 'wp_authenticate_user', $user, '' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Intentionally applying WordPress core's wp_authenticate_user filter so account-policy and 2FA plugins can veto the sign-in.
 		if ( is_wp_error( $checked ) ) {
 			return $checked;
 		}

@@ -384,7 +384,7 @@ class Lean_Sign_In_With_Google_Settings {
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row"><label for="<?php echo esc_attr( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID ); ?>"><?php esc_html_e( 'Client ID', 'lean-sign-in-with-google' ); ?></label></th>
-							<td><?php self::text_field( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID, [ 'placeholder' => '1234567890-abc.apps.googleusercontent.com' ] ); ?></td>
+							<td><?php self::text_field( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID, [ 'placeholder' => '1234567890-abcdef' ] ); ?></td>
 						</tr>
 						<tr>
 							<th scope="row"><label for="<?php echo esc_attr( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_SECRET ); ?>"><?php esc_html_e( 'Client Secret', 'lean-sign-in-with-google' ); ?></label></th>
