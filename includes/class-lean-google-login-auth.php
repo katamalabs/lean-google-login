@@ -22,7 +22,7 @@
  * This plugin never disables password login — it only adds a button — so there
  * is no way to lock an administrator out of their own site.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -68,7 +68,7 @@ class Lean_Google_Login_Auth {
 	 */
 	public static function handle_start(): void {
 		if ( ! Lean_Google_Login_Client::is_configured() ) {
-			self::redirect_to_login( 'config', __( 'Google sign-in is not configured yet.', 'lean-google-login' ) );
+			self::redirect_to_login( 'config', __( 'Google sign-in is not configured yet.', 'lean-sign-in-with-google' ) );
 		}
 
 		$state       = bin2hex( random_bytes( 32 ) );
@@ -103,14 +103,14 @@ class Lean_Google_Login_Auth {
 		self::clear_state_cookie();
 
 		if ( '' === $cookie || '' === $state || ! hash_equals( $cookie, $state ) ) {
-			self::redirect_to_login( 'state', __( 'The sign-in request could not be verified. Please try again.', 'lean-google-login' ) );
+			self::redirect_to_login( 'state', __( 'The sign-in request could not be verified. Please try again.', 'lean-sign-in-with-google' ) );
 		}
 
 		$key  = self::TRANSIENT_PREFIX . hash( 'sha256', $state );
 		$data = get_transient( $key );
 		delete_transient( $key );
 		if ( ! is_array( $data ) ) {
-			self::redirect_to_login( 'state', __( 'The sign-in request expired. Please try again.', 'lean-google-login' ) );
+			self::redirect_to_login( 'state', __( 'The sign-in request expired. Please try again.', 'lean-sign-in-with-google' ) );
 		}
 		$redirect_to = isset( $data['redirect_to'] ) ? (string) $data['redirect_to'] : '';
 
@@ -121,7 +121,7 @@ class Lean_Google_Login_Auth {
 
 		$code = self::get_param( 'code' );
 		if ( '' === $code ) {
-			self::redirect_to_login( 'google', __( 'Google returned no authorization code.', 'lean-google-login' ) );
+			self::redirect_to_login( 'google', __( 'Google returned no authorization code.', 'lean-sign-in-with-google' ) );
 		}
 
 		$claims = Lean_Google_Login_Client::exchange_code( $code, Lean_Google_Login_Client::redirect_uri() );
@@ -159,22 +159,22 @@ class Lean_Google_Login_Auth {
 	public static function authenticate_claims( array $claims ) {
 		$email = isset( $claims['email'] ) ? sanitize_email( (string) $claims['email'] ) : '';
 		if ( '' === $email ) {
-			return new WP_Error( 'lean_google_login_no_email', __( 'Google did not return an email address.', 'lean-google-login' ) );
+			return new WP_Error( 'lean_google_login_no_email', __( 'Google did not return an email address.', 'lean-sign-in-with-google' ) );
 		}
 
 		if ( ! self::claim_is_true( $claims['email_verified'] ?? false ) ) {
-			return new WP_Error( 'lean_google_login_unverified', __( 'Google has not verified this email address, so it cannot be used to sign in.', 'lean-google-login' ) );
+			return new WP_Error( 'lean_google_login_unverified', __( 'Google has not verified this email address, so it cannot be used to sign in.', 'lean-sign-in-with-google' ) );
 		}
 
 		// The stable Google account id. It is the primary key for an established
 		// link, so a login with no `sub` can neither be matched nor bound.
 		$sub = isset( $claims['sub'] ) ? trim( (string) $claims['sub'] ) : '';
 		if ( '' === $sub ) {
-			return new WP_Error( 'lean_google_login_no_sub', __( 'Google did not return an account identifier.', 'lean-google-login' ) );
+			return new WP_Error( 'lean_google_login_no_sub', __( 'Google did not return an account identifier.', 'lean-sign-in-with-google' ) );
 		}
 
 		if ( ! self::domain_allowed( $claims, $email ) ) {
-			return new WP_Error( 'lean_google_login_domain', __( 'This email domain is not permitted to sign in here.', 'lean-google-login' ) );
+			return new WP_Error( 'lean_google_login_domain', __( 'This email domain is not permitted to sign in here.', 'lean-sign-in-with-google' ) );
 		}
 
 		$user = self::resolve_user( $claims, $email, $sub );
@@ -205,7 +205,7 @@ class Lean_Google_Login_Auth {
 			return $user;
 		}
 		if ( ! $user instanceof WP_User ) {
-			return new WP_Error( 'lean_google_login_rejected', __( 'Sign-in was rejected.', 'lean-google-login' ) );
+			return new WP_Error( 'lean_google_login_rejected', __( 'Sign-in was rejected.', 'lean-sign-in-with-google' ) );
 		}
 		return $user;
 	}
@@ -235,7 +235,7 @@ class Lean_Google_Login_Auth {
 			if ( '' !== $other ) {
 				// This email's account is already linked to a different Google
 				// account (had it been this one, find_user_by_sub would have hit).
-				return new WP_Error( 'lean_google_login_sub_mismatch', __( 'This Google account does not match the WordPress account registered to that email address.', 'lean-google-login' ) );
+				return new WP_Error( 'lean_google_login_sub_mismatch', __( 'This Google account does not match the WordPress account registered to that email address.', 'lean-sign-in-with-google' ) );
 			}
 
 			// First Google sign-in for a pre-existing account. Binding it hands
@@ -244,7 +244,7 @@ class Lean_Google_Login_Auth {
 			// mailbox can change owner while the Google identity persists, which
 			// would let a later owner take over the WordPress account.
 			if ( ! self::google_is_authoritative( $claims, $email ) ) {
-				return new WP_Error( 'lean_google_login_link_unverified', __( 'This email address cannot be automatically linked to the existing account. Sign in to that account first and link Google from your profile.', 'lean-google-login' ) );
+				return new WP_Error( 'lean_google_login_link_unverified', __( 'This email address cannot be automatically linked to the existing account. Sign in to that account first and link Google from your profile.', 'lean-sign-in-with-google' ) );
 			}
 
 			update_user_meta( $existing->ID, self::META_SUB, $sub );
@@ -252,7 +252,7 @@ class Lean_Google_Login_Auth {
 		}
 
 		if ( ! Lean_Google_Login_Config::get_bool( self::OPTION_AUTO_CREATE, false ) ) {
-			return new WP_Error( 'lean_google_login_no_account', __( 'No WordPress account exists for that email address.', 'lean-google-login' ) );
+			return new WP_Error( 'lean_google_login_no_account', __( 'No WordPress account exists for that email address.', 'lean-sign-in-with-google' ) );
 		}
 
 		return self::create_user( $email, $claims, $sub );
@@ -334,10 +334,10 @@ class Lean_Google_Login_Auth {
 
 		if ( is_multisite() ) {
 			if ( 1 === (int) $user->deleted || 1 === (int) $user->spam ) {
-				return new WP_Error( 'lean_google_login_account_blocked', __( 'This account is not permitted to sign in.', 'lean-google-login' ) );
+				return new WP_Error( 'lean_google_login_account_blocked', __( 'This account is not permitted to sign in.', 'lean-sign-in-with-google' ) );
 			}
 			if ( ! is_user_member_of_blog( $user->ID, get_current_blog_id() ) ) {
-				return new WP_Error( 'lean_google_login_not_a_member', __( 'This account is not a member of this site.', 'lean-google-login' ) );
+				return new WP_Error( 'lean_google_login_not_a_member', __( 'This account is not a member of this site.', 'lean-sign-in-with-google' ) );
 			}
 		}
 
@@ -348,7 +348,7 @@ class Lean_Google_Login_Auth {
 			return $checked;
 		}
 		if ( ! $checked instanceof WP_User ) {
-			return new WP_Error( 'lean_google_login_rejected', __( 'Sign-in was rejected.', 'lean-google-login' ) );
+			return new WP_Error( 'lean_google_login_rejected', __( 'Sign-in was rejected.', 'lean-sign-in-with-google' ) );
 		}
 		return $checked;
 	}
@@ -474,20 +474,89 @@ class Lean_Google_Login_Auth {
 		}
 
 		$user = get_user_by( 'id', $user_id );
-		return $user instanceof WP_User ? $user : new WP_Error( 'lean_google_login_create_failed', __( 'The new account could not be loaded after creation.', 'lean-google-login' ) );
+		return $user instanceof WP_User ? $user : new WP_Error( 'lean_google_login_create_failed', __( 'The new account could not be loaded after creation.', 'lean-sign-in-with-google' ) );
 	}
 
 	/**
-	 * The role assigned to auto-created users: the configured role when it is a
-	 * real role, otherwise WordPress's own default-role setting.
+	 * Capabilities that let a role administer the site, its users, or its code. A
+	 * role holding any of these is never offered as, nor accepted as, the role for
+	 * auto-provisioned users: a Google sign-in is an anonymous, unauthenticated
+	 * request, so it must not be able to mint a privileged account on the site.
+	 *
+	 * @var string[]
+	 */
+	const PRIVILEGED_CAPS = [
+		'manage_options',
+		'promote_users',
+		'edit_users',
+		'create_users',
+		'delete_users',
+		'list_users',
+		'install_plugins',
+		'update_plugins',
+		'edit_plugins',
+		'install_themes',
+		'edit_themes',
+		'update_core',
+		'edit_files',
+	];
+
+	/**
+	 * Whether a role may be assigned to an auto-provisioned user: it must be a
+	 * real, installed role that holds none of the site-administration
+	 * capabilities in PRIVILEGED_CAPS. Also screens custom roles, not just the
+	 * built-in administrator.
+	 */
+	public static function is_role_assignable( string $slug ): bool {
+		if ( '' === $slug ) {
+			return false;
+		}
+		$role = get_role( $slug );
+		if ( ! $role instanceof WP_Role ) {
+			return false;
+		}
+		foreach ( self::PRIVILEGED_CAPS as $cap ) {
+			if ( ! empty( $role->capabilities[ $cap ] ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * The installed roles that may be chosen for auto-provisioned users: every
+	 * editable role minus the privileged ones screened by is_role_assignable().
+	 *
+	 * @return array<string, array<string, mixed>> slug => role details
+	 */
+	public static function assignable_roles(): array {
+		$roles = [];
+		foreach ( get_editable_roles() as $slug => $details ) {
+			if ( self::is_role_assignable( (string) $slug ) ) {
+				$roles[ $slug ] = $details;
+			}
+		}
+		return $roles;
+	}
+
+	/**
+	 * The role assigned to auto-created users: the configured role when it is an
+	 * assignable (non-privileged) role, otherwise WordPress's own default-role
+	 * setting, and never a privileged role regardless of how it was set. This is
+	 * the last line of defense — the settings UI and sanitizer already refuse
+	 * privileged roles — so a value forced in via a wp-config.php constant cannot
+	 * auto-provision an administrator either.
 	 */
 	public static function default_role(): string {
 		$role = Lean_Google_Login_Config::get_string( self::OPTION_DEFAULT_ROLE );
-		if ( '' !== $role && wp_roles()->is_role( $role ) ) {
+		if ( '' !== $role && self::is_role_assignable( $role ) ) {
 			return $role;
 		}
 		$fallback = (string) get_option( 'default_role', 'subscriber' );
-		return '' !== $fallback ? $fallback : 'subscriber';
+		if ( '' !== $fallback && self::is_role_assignable( $fallback ) ) {
+			return $fallback;
+		}
+		return 'subscriber';
 	}
 
 	/**
@@ -531,10 +600,10 @@ class Lean_Google_Login_Auth {
 		 *
 		 * @param string $label The button text.
 		 */
-		$label = (string) apply_filters( 'lean_google_login_button_text', __( 'Sign in with Google', 'lean-google-login' ) );
+		$label = (string) apply_filters( 'lean_google_login_button_text', __( 'Sign in with Google', 'lean-sign-in-with-google' ) );
 		?>
 		<div class="lgl-wrap">
-			<div class="lgl-divider"><span><?php esc_html_e( 'or', 'lean-google-login' ); ?></span></div>
+			<div class="lgl-divider"><span><?php esc_html_e( 'or', 'lean-sign-in-with-google' ); ?></span></div>
 			<a class="lgl-button" href="<?php echo esc_url( $url ); ?>">
 				<span class="lgl-icon" aria-hidden="true">
 					<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -551,7 +620,7 @@ class Lean_Google_Login_Auth {
 	}
 
 	public static function enqueue_button_css(): void {
-		wp_enqueue_style( 'lean-google-login', LEAN_GOOGLE_LOGIN_URL . 'css/login.css', [], LEAN_GOOGLE_LOGIN_VERSION );
+		wp_enqueue_style( 'lean-sign-in-with-google', LEAN_GOOGLE_LOGIN_URL . 'css/login.css', [], LEAN_GOOGLE_LOGIN_VERSION );
 	}
 
 	/**
@@ -566,7 +635,7 @@ class Lean_Google_Login_Auth {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading a redirect flag to display a message; no state change.
 		$text = isset( $_GET['lgl_msg'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['lgl_msg'] ) ) : '';
 		if ( '' === $text ) {
-			$text = __( 'Google sign-in failed.', 'lean-google-login' );
+			$text = __( 'Google sign-in failed.', 'lean-sign-in-with-google' );
 		}
 		return $message . '<div id="login_error" class="notice notice-error"><p>' . esc_html( $text ) . '</p></div>';
 	}

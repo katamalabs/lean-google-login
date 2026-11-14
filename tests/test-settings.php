@@ -2,7 +2,7 @@
 /**
  * Tests for the settings sanitizers, the constant guard, and registration.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 class Test_Lean_Google_Login_Settings extends WP_UnitTestCase {
@@ -59,6 +59,8 @@ class Test_Lean_Google_Login_Settings extends WP_UnitTestCase {
 	public function test_role_sanitizer_keeps_real_roles_and_rejects_others() {
 		$this->assertSame( 'editor', Lean_Google_Login_Settings::sanitize_role( 'editor' ) );
 		$this->assertSame( '', Lean_Google_Login_Settings::sanitize_role( 'not-a-role' ) );
+		// Privileged roles are rejected so auto-provisioning can never mint an admin.
+		$this->assertSame( '', Lean_Google_Login_Settings::sanitize_role( 'administrator' ) );
 	}
 
 	// -------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 {
-  "name": "katamalabs/lean-google-login",
+  "name": "katamalabs/lean-sign-in-with-google",
   "description": "Lean Google Login WordPress plugin - adds a Sign in with Google (OAuth2) button to wp-login.php, with an optional Workspace domain allow-list.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",

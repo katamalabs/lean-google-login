@@ -6,7 +6,7 @@
  * checked without a network. The code exchange is exercised with the HTTP layer
  * mocked via pre_http_request.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 class Test_Lean_Google_Login_Client extends WP_UnitTestCase {

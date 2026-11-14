@@ -6,7 +6,7 @@
  * authenticate_claims() is pure of HTTP and cookies, so it is driven directly
  * with option config and the WP user factory.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 class Test_Lean_Google_Login_Auth extends WP_UnitTestCase {
@@ -288,6 +288,27 @@ class Test_Lean_Google_Login_Auth extends WP_UnitTestCase {
 		$this->assertSame( 'new@example.com', $result->user_email );
 		$this->assertContains( 'editor', $result->roles );
 		$this->assertSame( 'new-sub', (string) get_user_meta( $result->ID, Lean_Google_Login_Auth::META_SUB, true ) );
+	}
+
+	public function test_a_configured_privileged_role_is_never_used_to_auto_provision() {
+		// Even if an administrator role is forced into the option, an anonymous
+		// Google sign-in must not create an administrator.
+		update_option( Lean_Google_Login_Auth::OPTION_AUTO_CREATE, '1' );
+		update_option( Lean_Google_Login_Auth::OPTION_DEFAULT_ROLE, 'administrator' );
+
+		$result = Lean_Google_Login_Auth::authenticate_claims(
+			$this->claims(
+				[
+					'email' => 'escalate@example.com',
+					'sub'   => 'escalate-sub',
+				]
+			)
+		);
+
+		$this->assertInstanceOf( 'WP_User', $result );
+		$this->assertNotContains( 'administrator', $result->roles );
+		$this->assertFalse( Lean_Google_Login_Auth::is_role_assignable( 'administrator' ) );
+		$this->assertTrue( Lean_Google_Login_Auth::is_role_assignable( 'subscriber' ) );
 	}
 
 	public function test_a_very_long_email_local_part_is_truncated_to_a_valid_username() {

@@ -21,7 +21,7 @@
  * Trimmed from Lean SMTP's config: this plugin stores plain site options and
  * has no network (sitemeta) store — the configuration is small and per-site.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

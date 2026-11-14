@@ -83,9 +83,9 @@ jobs:
     env:
       BUILD_DIR: "build"
       DIST_DIR_GITHUB: "dist/github"
-      GITHUB_RELEASE_FILENAME: "lean-google-login.zip"
-      PLUGIN: "lean-google-login"
-      MAINFILE: "lean-google-login.php"
+      GITHUB_RELEASE_FILENAME: "lean-sign-in-with-google.zip"
+      PLUGIN: "lean-sign-in-with-google"
+      MAINFILE: "lean-sign-in-with-google.php"
     steps:
       - name: Check out code 🛒
         uses: actions/checkout@v7

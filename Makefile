@@ -1,6 +1,9 @@
 COMMIT := $(shell git rev-parse --short=8 HEAD)
 BASENAME := $(shell basename $(CURDIR))
-ZIP_FILENAME := $(or $(ZIP_FILENAME),$(BASENAME).zip)
+# WordPress.org plugin slug. Decoupled from the repo/directory name so the
+# distributed package folder is the reserved slug regardless of the checkout dir.
+SLUG := $(or $(SLUG),lean-sign-in-with-google)
+ZIP_FILENAME := $(or $(ZIP_FILENAME),$(SLUG).zip)
 BUILD_DIR := $(or $(BUILD_DIR),build)
 VENDOR_AUTOLOAD := vendor/autoload.php
 
@@ -16,7 +19,7 @@ help:  ## Print the help documentation
 .PHONY: build
 build:  ## Build the release zip (always rebuilt from the current HEAD commit)
 	mkdir -p $(BUILD_DIR)
-	git archive --format=zip --worktree-attributes --prefix=$(BASENAME)/ --output=$(BUILD_DIR)/$(ZIP_FILENAME) $(COMMIT)
+	git archive --format=zip --worktree-attributes --prefix=$(SLUG)/ --output=$(BUILD_DIR)/$(ZIP_FILENAME) $(COMMIT)
 
 .PHONY: clean
 clean:  ## clean

@@ -17,7 +17,7 @@ if [[ -z "$TAG" ]]; then
 	exit 1
 fi
 
-MAINFILE=${MAINFILE:-lean-google-login.php}
+MAINFILE=${MAINFILE:-lean-sign-in-with-google.php}
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 

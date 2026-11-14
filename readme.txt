@@ -1,4 +1,4 @@
-=== Lean Google Login ===
+=== Lean Sign in with Google ===
 Contributors: pjaudiomv
 Tags: login, google, oauth, google-workspace, sso
 Requires at least: 6.0
@@ -12,7 +12,7 @@ A minimal, secure "Sign in with Google" button for WordPress, with an optional G
 
 == Description ==
 
-Lean Google Login adds a **Sign in with Google** button to your WordPress login screen using the standard OAuth2 authorization-code flow. It is deliberately small: one button, a handful of settings, and no bundled Google SDK.
+Lean Sign in with Google adds a **Sign in with Google** button to your WordPress login screen using the standard OAuth2 authorization-code flow. It is deliberately small: one button, a handful of settings, and no bundled Google SDK.
 
 **Everything is free.** There is no pro version, no paid add-ons, no account to create, and no upsell banners in the admin. Nothing phones home — the plugin makes no network requests other than the Google OAuth calls needed to sign a person in.
 
@@ -32,7 +32,7 @@ Consumer-Gmail One Tap and Microsoft 365 login are deliberate non-goals — they
 
 1. Upload the plugin and activate it.
 2. In the [Google Cloud Console](https://console.cloud.google.com/), create an OAuth 2.0 Client ID of type **Web application** (set the OAuth consent screen to Internal for a Workspace org, or External for consumer accounts).
-3. Go to Settings → Lean Google Login and copy the **Authorized redirect URI** shown there into your OAuth client's "Authorized redirect URIs" in Google Cloud (it must match exactly).
+3. Go to Settings → Lean Sign in with Google and copy the **Authorized redirect URI** shown there into your OAuth client's "Authorized redirect URIs" in Google Cloud (it must match exactly).
 4. Paste the **Client ID** and **Client Secret** into the plugin and save.
 5. Optionally set one or more **Allowed domains**, and decide whether new Google users should get an account.
 6. A "Sign in with Google" button now appears on your login screen.
@@ -61,8 +61,25 @@ Yes, free. There is no pro version and no upsells.
 
 == Screenshots ==
 
-1. Settings → Lean Google Login: paste your Google OAuth client ID and secret, copy the redirect URI into Google Cloud, limit sign-in to one or more Workspace domains, and choose whether new users are created and with which role.
+1. Settings → Lean Sign in with Google: paste your Google OAuth client ID and secret, copy the redirect URI into Google Cloud, limit sign-in to one or more Workspace domains, and choose whether new users are created and with which role.
 2. The "Sign in with Google" button on the WordPress login screen. Normal password login stays enabled alongside it.
+
+== External services ==
+
+This plugin connects to Google's OAuth 2.0 and OpenID Connect services to authenticate people who choose to sign in with Google. This connection is what makes the "Sign in with Google" button work; the plugin does not function without it, and it contacts no other external service.
+
+The connection happens only when a site administrator has configured a Google OAuth client and a visitor clicks the "Sign in with Google" button. It involves these Google endpoints:
+
+* `https://accounts.google.com/o/oauth2/v2/auth` — the visitor's browser is redirected here to sign in to Google and consent. The plugin sends your configured OAuth client ID, the requested scopes (`openid`, `email`, `profile`), the redirect URI back to your site, and an anti-CSRF `state` value.
+* `https://oauth2.googleapis.com/token` — after the visitor returns, your server exchanges the one-time authorization code for an identity token. The plugin sends your OAuth client ID, client secret, the authorization code, and the redirect URI. In response, Google returns the signed-in person's Google account identifier, email address, email-verified flag, and (if present) name and Workspace hosted-domain claim, which the plugin uses to match or create the WordPress account.
+
+No data is sent to Google unless and until a visitor initiates a Google sign-in. The plugin sends no analytics, telemetry, or personal data of its own to any service.
+
+This service is provided by Google. By using it you are subject to:
+
+* Google Terms of Service: https://policies.google.com/terms
+* Google Privacy Policy: https://policies.google.com/privacy
+* Google API Services User Data Policy: https://developers.google.com/terms/api-services-user-data-policy
 
 == Changelog ==
 

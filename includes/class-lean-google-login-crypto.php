@@ -11,7 +11,7 @@
  * A near-verbatim port of Lean SMTP's crypto class — the two plugins are
  * siblings and share the same secret-at-rest approach.
  *
- * @package lean-google-login
+ * @package lean-sign-in-with-google
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
