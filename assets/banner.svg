@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1544" height="500" viewBox="0 0 1544 500" role="img" aria-label="Lean Sign in with Google — WordPress plugin by Katama Labs">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#171f27"/>
+      <stop offset="0.55" stop-color="#0e1319"/>
+      <stop offset="1" stop-color="#090c0f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.14" cy="0.44" r="0.52">
+      <stop offset="0" stop-color="#223440" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#223440" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="iconBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#15241b"/>
+      <stop offset="1" stop-color="#0a0f0c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1544" height="500" fill="url(#bgGrad)"/>
+  <rect width="1544" height="500" fill="url(#glow)"/>
+
+  <!-- App icon (shield + keyhole), reused from assets/icon.svg -->
+  <svg x="96" y="178" width="150" height="150" viewBox="0 0 256 256">
+    <rect width="256" height="256" rx="56" fill="url(#iconBg)"/>
+    <path d="M128 42 L194 66 V127 C194 170 164 201 128 217 C92 201 62 170 62 127 V66 Z" fill="#7aa993"/>
+    <circle cx="128" cy="116" r="18" fill="#0f1a14"/>
+    <rect x="122" y="126" width="12" height="40" rx="6" fill="#0f1a14"/>
+  </svg>
+
+  <!-- Eyebrow -->
+  <text x="280" y="172" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="500" letter-spacing="5.4" fill="#6f8f7e">WORDPRESS PLUGIN · FREE &amp; OPEN SOURCE</text>
+
+  <!-- Headline -->
+  <text x="277" y="266" font-family="Didot, 'Bodoni 72', 'Playfair Display', Georgia, serif" font-size="90" fill="#f4f6f3">Lean Sign in with Google</text>
+
+  <!-- Subtitle -->
+  <text x="281" y="320" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="29" fill="#95a29b">Minimal and secure, no telemetry — with an</text>
+  <text x="281" y="359" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="29" fill="#95a29b"><tspan font-weight="700" fill="#e9ede9">optional</tspan> Google Workspace domain lock.</text>
+
+  <!-- Wordmark -->
+  <text x="1448" y="476" text-anchor="end" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="500" letter-spacing="3.2" fill="#5a645e"><tspan fill="#8a978f">KATAMA</tspan> LABS</text>
+</svg>
