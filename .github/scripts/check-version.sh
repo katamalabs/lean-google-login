@@ -5,7 +5,7 @@
 #
 # Checks, all against the tag passed as $1 (e.g. "0.1.0"):
 #   - the main plugin header `Version:`
-#   - the LEAN_GOOGLE_LOGIN_VERSION constant
+#   - the LEAN_SIGN_IN_WITH_GOOGLE_VERSION constant
 #   - the readme.txt `Stable tag:`
 #   - a matching `== Changelog ==` entry (`= <version> =`) in readme.txt
 #
@@ -22,12 +22,12 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 HEADER_VERSION=$(grep -i "^ \* Version:" "$MAINFILE" | head -1 | awk -F' ' '{print $NF}' | tr -d '\r')
-CONST_VERSION=$(grep -i "LEAN_GOOGLE_LOGIN_VERSION" "$MAINFILE" | head -1 | sed -E "s/.*'([^']+)'.*/\1/" | tr -d '\r')
+CONST_VERSION=$(grep -i "LEAN_SIGN_IN_WITH_GOOGLE_VERSION" "$MAINFILE" | head -1 | sed -E "s/.*'([^']+)'.*/\1/" | tr -d '\r')
 README_VERSION=$(grep -i "Stable tag:" readme.txt | head -1 | awk -F' ' '{print $NF}' | tr -d '\r')
 
 echo "tag: $TAG"
 echo "$MAINFILE header Version:    $HEADER_VERSION"
-echo "LEAN_GOOGLE_LOGIN_VERSION:   $CONST_VERSION"
+echo "LEAN_SIGN_IN_WITH_GOOGLE_VERSION:   $CONST_VERSION"
 echo "readme.txt Stable tag:       $README_VERSION"
 
 FAIL=0
@@ -36,7 +36,7 @@ if [[ "$HEADER_VERSION" != "$TAG" ]]; then
 	FAIL=1
 fi
 if [[ "$CONST_VERSION" != "$TAG" ]]; then
-	echo "::error::LEAN_GOOGLE_LOGIN_VERSION ($CONST_VERSION) does not match the tag ($TAG)." >&2
+	echo "::error::LEAN_SIGN_IN_WITH_GOOGLE_VERSION ($CONST_VERSION) does not match the tag ($TAG)." >&2
 	FAIL=1
 fi
 if [[ "$README_VERSION" != "$TAG" ]]; then

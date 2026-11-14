@@ -16,18 +16,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'LEAN_GOOGLE_LOGIN_VERSION', '0.1.0' );
-define( 'LEAN_GOOGLE_LOGIN_FILE', __FILE__ );
-define( 'LEAN_GOOGLE_LOGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'LEAN_GOOGLE_LOGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'LEAN_SIGN_IN_WITH_GOOGLE_VERSION', '0.1.0' );
+define( 'LEAN_SIGN_IN_WITH_GOOGLE_FILE', __FILE__ );
+define( 'LEAN_SIGN_IN_WITH_GOOGLE_DIR', plugin_dir_path( __FILE__ ) );
+define( 'LEAN_SIGN_IN_WITH_GOOGLE_URL', plugin_dir_url( __FILE__ ) );
 
-require_once LEAN_GOOGLE_LOGIN_DIR . 'includes/class-lean-google-login-crypto.php';
-require_once LEAN_GOOGLE_LOGIN_DIR . 'includes/class-lean-google-login-config.php';
-require_once LEAN_GOOGLE_LOGIN_DIR . 'includes/class-lean-google-login-client.php';
-require_once LEAN_GOOGLE_LOGIN_DIR . 'includes/class-lean-google-login-auth.php';
-require_once LEAN_GOOGLE_LOGIN_DIR . 'includes/class-lean-google-login-settings.php';
+require_once LEAN_SIGN_IN_WITH_GOOGLE_DIR . 'includes/class-lean-sign-in-with-google-crypto.php';
+require_once LEAN_SIGN_IN_WITH_GOOGLE_DIR . 'includes/class-lean-sign-in-with-google-config.php';
+require_once LEAN_SIGN_IN_WITH_GOOGLE_DIR . 'includes/class-lean-sign-in-with-google-client.php';
+require_once LEAN_SIGN_IN_WITH_GOOGLE_DIR . 'includes/class-lean-sign-in-with-google-auth.php';
+require_once LEAN_SIGN_IN_WITH_GOOGLE_DIR . 'includes/class-lean-sign-in-with-google-settings.php';
 
-class Lean_Google_Login {
+class Lean_Sign_In_With_Google {
 
 	private static ?self $instance = null;
 
@@ -39,8 +39,8 @@ class Lean_Google_Login {
 	}
 
 	private function __construct() {
-		Lean_Google_Login_Auth::init();
-		Lean_Google_Login_Settings::init();
+		Lean_Sign_In_With_Google_Auth::init();
+		Lean_Sign_In_With_Google_Settings::init();
 	}
 
 	// -------------------------------------------------------------------------
@@ -59,6 +59,6 @@ class Lean_Google_Login {
 	}
 }
 
-register_activation_hook( __FILE__, [ 'Lean_Google_Login', 'activate' ] );
-register_deactivation_hook( __FILE__, [ 'Lean_Google_Login', 'deactivate' ] );
-Lean_Google_Login::get_instance();
+register_activation_hook( __FILE__, [ 'Lean_Sign_In_With_Google', 'activate' ] );
+register_deactivation_hook( __FILE__, [ 'Lean_Sign_In_With_Google', 'deactivate' ] );
+Lean_Sign_In_With_Google::get_instance();

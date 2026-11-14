@@ -4,7 +4,7 @@
  * domain allow-list, and the auto-create / default-role options.
  *
  * Any setting can instead be pinned in wp-config.php (see
- * Lean_Google_Login_Config). When it is, the field renders read-only and
+ * Lean_Sign_In_With_Google_Config). When it is, the field renders read-only and
  * guard_constant() discards the submission — so what the page shows is always
  * what is in force, and removing the constant restores whatever was saved
  * before. The field renderers and the register_setting / guard_constant pattern
@@ -17,10 +17,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Lean_Google_Login_Settings {
+class Lean_Sign_In_With_Google_Settings {
 
 	const PAGE  = 'lean-sign-in-with-google';
-	const GROUP = 'lean-google-login-group';
+	const GROUP = 'lean-sign-in-with-google-group';
 
 	/** Hook suffix of the settings screen, so assets load nowhere else. */
 	private static string $settings_hook = '';
@@ -29,7 +29,7 @@ class Lean_Google_Login_Settings {
 		add_action( 'admin_menu', [ static::class, 'admin_menu' ] );
 		add_action( 'admin_init', [ static::class, 'register_settings' ] );
 		add_action( 'admin_enqueue_scripts', [ static::class, 'enqueue_assets' ] );
-		add_filter( 'plugin_action_links_' . plugin_basename( LEAN_GOOGLE_LOGIN_FILE ), [ static::class, 'settings_link' ] );
+		add_filter( 'plugin_action_links_' . plugin_basename( LEAN_SIGN_IN_WITH_GOOGLE_FILE ), [ static::class, 'settings_link' ] );
 	}
 
 	/**
@@ -61,7 +61,7 @@ class Lean_Google_Login_Settings {
 		if ( '' === self::$settings_hook || $hook_suffix !== self::$settings_hook ) {
 			return;
 		}
-		wp_enqueue_style( 'lean-google-login-settings', LEAN_GOOGLE_LOGIN_URL . 'css/settings.css', [], LEAN_GOOGLE_LOGIN_VERSION );
+		wp_enqueue_style( 'lean-sign-in-with-google-settings', LEAN_SIGN_IN_WITH_GOOGLE_URL . 'css/settings.css', [], LEAN_SIGN_IN_WITH_GOOGLE_VERSION );
 	}
 
 	// -------------------------------------------------------------------------
@@ -75,11 +75,11 @@ class Lean_Google_Login_Settings {
 	 * and WordPress.org review can resolve each callback to a literal.
 	 */
 	public static function register_settings(): void {
-		register_setting( self::GROUP, Lean_Google_Login_Client::OPTION_CLIENT_ID, [ 'sanitize_callback' => 'sanitize_text_field' ] );
-		register_setting( self::GROUP, Lean_Google_Login_Client::OPTION_CLIENT_SECRET, [ 'sanitize_callback' => [ static::class, 'sanitize_client_secret' ] ] );
-		register_setting( self::GROUP, Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS, [ 'sanitize_callback' => [ static::class, 'sanitize_allowed_domains' ] ] );
-		register_setting( self::GROUP, Lean_Google_Login_Auth::OPTION_AUTO_CREATE, [ 'sanitize_callback' => 'absint' ] );
-		register_setting( self::GROUP, Lean_Google_Login_Auth::OPTION_DEFAULT_ROLE, [ 'sanitize_callback' => [ static::class, 'sanitize_role' ] ] );
+		register_setting( self::GROUP, Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID, [ 'sanitize_callback' => 'sanitize_text_field' ] );
+		register_setting( self::GROUP, Lean_Sign_In_With_Google_Client::OPTION_CLIENT_SECRET, [ 'sanitize_callback' => [ static::class, 'sanitize_client_secret' ] ] );
+		register_setting( self::GROUP, Lean_Sign_In_With_Google_Auth::OPTION_ALLOWED_DOMAINS, [ 'sanitize_callback' => [ static::class, 'sanitize_allowed_domains' ] ] );
+		register_setting( self::GROUP, Lean_Sign_In_With_Google_Auth::OPTION_AUTO_CREATE, [ 'sanitize_callback' => 'absint' ] );
+		register_setting( self::GROUP, Lean_Sign_In_With_Google_Auth::OPTION_DEFAULT_ROLE, [ 'sanitize_callback' => [ static::class, 'sanitize_role' ] ] );
 
 		self::guard_constant_backed_settings();
 	}
@@ -108,14 +108,14 @@ class Lean_Google_Login_Settings {
 	 * @return mixed
 	 */
 	public static function guard_constant( $value, string $option = '' ) {
-		if ( '' !== $option && Lean_Google_Login_Config::is_constant( $option ) ) {
-			return Lean_Google_Login_Config::stored( $option, '' );
+		if ( '' !== $option && Lean_Sign_In_With_Google_Config::is_constant( $option ) ) {
+			return Lean_Sign_In_With_Google_Config::stored( $option, '' );
 		}
 		return $value;
 	}
 
 	public static function sanitize_client_secret( $value ): string {
-		return self::sanitize_secret( $value, Lean_Google_Login_Client::OPTION_CLIENT_SECRET );
+		return self::sanitize_secret( $value, Lean_Sign_In_With_Google_Client::OPTION_CLIENT_SECRET );
 	}
 
 	/**
@@ -132,15 +132,15 @@ class Lean_Google_Login_Settings {
 	private static function sanitize_secret( $value, string $option ): string {
 		$value = is_string( $value ) ? trim( $value ) : '';
 		if ( '' === $value ) {
-			return self::secret_cleared( $option ) ? '' : (string) Lean_Google_Login_Config::stored( $option, '' );
+			return self::secret_cleared( $option ) ? '' : (string) Lean_Sign_In_With_Google_Config::stored( $option, '' );
 		}
 		// WordPress runs the callback twice on a first save (update then add); the
 		// second pass receives our own ciphertext — don't encrypt it again.
-		if ( Lean_Google_Login_Crypto::is_encrypted( $value ) ) {
+		if ( Lean_Sign_In_With_Google_Crypto::is_encrypted( $value ) ) {
 			return $value;
 		}
 		$stripped = preg_replace( '/[\x00-\x1F\x7F]/', '', $value );
-		return Lean_Google_Login_Crypto::encrypt( trim( is_string( $stripped ) ? $stripped : $value ) );
+		return Lean_Sign_In_With_Google_Crypto::encrypt( trim( is_string( $stripped ) ? $stripped : $value ) );
 	}
 
 	/**
@@ -190,8 +190,8 @@ class Lean_Google_Login_Settings {
 		// lift the restriction the admin must clear the field entirely.
 		if ( ! empty( $invalid ) ) {
 			add_settings_error(
-				Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS,
-				'lean_google_login_invalid_domain',
+				Lean_Sign_In_With_Google_Auth::OPTION_ALLOWED_DOMAINS,
+				'lean_sign_in_with_google_invalid_domain',
 				sprintf(
 					/* translators: %s: the rejected entries. */
 					__( 'These allowed-domain entries are not valid hostnames and were ignored: %s. To remove the restriction entirely, clear the field.', 'lean-sign-in-with-google' ),
@@ -201,7 +201,7 @@ class Lean_Google_Login_Settings {
 		}
 
 		if ( empty( $domains ) ) {
-			return (string) Lean_Google_Login_Config::stored( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS, '' );
+			return (string) Lean_Sign_In_With_Google_Config::stored( Lean_Sign_In_With_Google_Auth::OPTION_ALLOWED_DOMAINS, '' );
 		}
 
 		return implode( ', ', array_keys( $domains ) );
@@ -211,13 +211,13 @@ class Lean_Google_Login_Settings {
 	 * Keep the default-role setting to an existing, non-privileged role; fall back
 	 * to empty (which the auth layer resolves to WordPress's own default role).
 	 * Privileged roles are rejected so auto-provisioning can never mint a site
-	 * administrator — see Lean_Google_Login_Auth::is_role_assignable().
+	 * administrator — see Lean_Sign_In_With_Google_Auth::is_role_assignable().
 	 *
 	 * @param mixed $value Submitted value.
 	 */
 	public static function sanitize_role( $value ): string {
 		$role = is_string( $value ) ? sanitize_key( $value ) : '';
-		return ( '' !== $role && Lean_Google_Login_Auth::is_role_assignable( $role ) ) ? $role : '';
+		return ( '' !== $role && Lean_Sign_In_With_Google_Auth::is_role_assignable( $role ) ) ? $role : '';
 	}
 
 	// -------------------------------------------------------------------------
@@ -225,7 +225,7 @@ class Lean_Google_Login_Settings {
 	// -------------------------------------------------------------------------
 
 	private static function lock_note( string $option ): void {
-		if ( ! Lean_Google_Login_Config::is_constant( $option ) ) {
+		if ( ! Lean_Sign_In_With_Google_Config::is_constant( $option ) ) {
 			return;
 		}
 		?>
@@ -234,7 +234,7 @@ class Lean_Google_Login_Settings {
 			printf(
 				/* translators: %s: PHP constant name. */
 				esc_html__( 'Set in wp-config.php as %s — change it there.', 'lean-sign-in-with-google' ),
-				'<code>' . esc_html( Lean_Google_Login_Config::constant_name( $option ) ) . '</code>'
+				'<code>' . esc_html( Lean_Sign_In_With_Google_Config::constant_name( $option ) ) . '</code>'
 			);
 			?>
 		</p>
@@ -254,12 +254,12 @@ class Lean_Google_Login_Settings {
 				'description' => '',
 			]
 		);
-		$value = array_key_exists( 'value', $args ) ? (string) $args['value'] : (string) Lean_Google_Login_Config::get( $option, '' );
+		$value = array_key_exists( 'value', $args ) ? (string) $args['value'] : (string) Lean_Sign_In_With_Google_Config::get( $option, '' );
 		?>
 		<input type="<?php echo esc_attr( $args['type'] ); ?>" id="<?php echo esc_attr( $option ); ?>"
 			name="<?php echo esc_attr( $option ); ?>" value="<?php echo esc_attr( $value ); ?>"
 			class="<?php echo esc_attr( $args['class'] ); ?>" placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
-			autocomplete="off" <?php disabled( Lean_Google_Login_Config::is_constant( $option ) ); ?> />
+			autocomplete="off" <?php disabled( Lean_Sign_In_With_Google_Config::is_constant( $option ) ); ?> />
 		<?php if ( '' !== $args['description'] ) : ?>
 			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
 		<?php endif; ?>
@@ -272,14 +272,14 @@ class Lean_Google_Login_Settings {
 	 * blank submission keeps whatever is stored.
 	 */
 	private static function secret_field( string $option, string $description = '' ): void {
-		$placeholder = Lean_Google_Login_Config::has_secret( $option )
+		$placeholder = Lean_Sign_In_With_Google_Config::has_secret( $option )
 			? __( '••••••••  (leave blank to keep)', 'lean-sign-in-with-google' )
 			: '';
 		?>
 		<input type="password" id="<?php echo esc_attr( $option ); ?>" name="<?php echo esc_attr( $option ); ?>"
 			value="" class="regular-text" autocomplete="new-password"
 			placeholder="<?php echo esc_attr( $placeholder ); ?>"
-			<?php disabled( Lean_Google_Login_Config::is_constant( $option ) ); ?> />
+			<?php disabled( Lean_Sign_In_With_Google_Config::is_constant( $option ) ); ?> />
 		<?php
 		self::clear_checkbox( $option );
 		if ( '' !== $description ) :
@@ -291,7 +291,7 @@ class Lean_Google_Login_Settings {
 	}
 
 	private static function clear_checkbox( string $option ): void {
-		if ( Lean_Google_Login_Config::is_constant( $option ) || ! Lean_Google_Login_Config::has_secret( $option ) ) {
+		if ( Lean_Sign_In_With_Google_Config::is_constant( $option ) || ! Lean_Sign_In_With_Google_Config::has_secret( $option ) ) {
 			return;
 		}
 		?>
@@ -303,7 +303,7 @@ class Lean_Google_Login_Settings {
 	}
 
 	private static function checkbox_field( string $option, string $label, bool $default = false ): void {
-		$locked = Lean_Google_Login_Config::is_constant( $option );
+		$locked = Lean_Sign_In_With_Google_Config::is_constant( $option );
 		if ( ! $locked ) :
 			?>
 			<input type="hidden" name="<?php echo esc_attr( $option ); ?>" value="0" />
@@ -312,7 +312,7 @@ class Lean_Google_Login_Settings {
 		?>
 		<label>
 			<input type="checkbox" name="<?php echo esc_attr( $option ); ?>" value="1"
-				<?php checked( Lean_Google_Login_Config::get_bool( $option, $default ) ); ?>
+				<?php checked( Lean_Sign_In_With_Google_Config::get_bool( $option, $default ) ); ?>
 				<?php disabled( $locked ); ?> />
 			<?php echo esc_html( $label ); ?>
 		</label>
@@ -324,10 +324,10 @@ class Lean_Google_Login_Settings {
 	 * @param array<string, string> $choices Value => label.
 	 */
 	private static function select_field( string $option, array $choices, string $default, string $description = '' ): void {
-		$current = Lean_Google_Login_Config::get_string( $option, $default );
+		$current = Lean_Sign_In_With_Google_Config::get_string( $option, $default );
 		?>
 		<select id="<?php echo esc_attr( $option ); ?>" name="<?php echo esc_attr( $option ); ?>"
-			<?php disabled( Lean_Google_Login_Config::is_constant( $option ) ); ?>>
+			<?php disabled( Lean_Sign_In_With_Google_Config::is_constant( $option ) ); ?>>
 			<?php foreach ( $choices as $value => $label ) : ?>
 				<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $current, $value ); ?>>
 					<?php echo esc_html( $label ); ?>
@@ -350,7 +350,7 @@ class Lean_Google_Login_Settings {
 		$choices = [];
 		// Only non-privileged roles are offered: an anonymous Google sign-in must
 		// never be able to auto-provision an administrator or other site manager.
-		foreach ( Lean_Google_Login_Auth::assignable_roles() as $slug => $details ) {
+		foreach ( Lean_Sign_In_With_Google_Auth::assignable_roles() as $slug => $details ) {
 			$choices[ $slug ] = translate_user_role( $details['name'] );
 		}
 		return $choices;
@@ -361,7 +361,7 @@ class Lean_Google_Login_Settings {
 	// -------------------------------------------------------------------------
 
 	public static function settings_page(): void {
-		$configured = Lean_Google_Login_Client::is_configured();
+		$configured = Lean_Sign_In_With_Google_Client::is_configured();
 		?>
 		<div class="wrap lgl-wrap">
 			<h1><?php esc_html_e( 'Lean Sign in with Google', 'lean-sign-in-with-google' ); ?></h1>
@@ -383,18 +383,18 @@ class Lean_Google_Login_Settings {
 					</p>
 					<table class="form-table" role="presentation">
 						<tr>
-							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Client::OPTION_CLIENT_ID ); ?>"><?php esc_html_e( 'Client ID', 'lean-sign-in-with-google' ); ?></label></th>
-							<td><?php self::text_field( Lean_Google_Login_Client::OPTION_CLIENT_ID, [ 'placeholder' => '1234567890-abc.apps.googleusercontent.com' ] ); ?></td>
+							<th scope="row"><label for="<?php echo esc_attr( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID ); ?>"><?php esc_html_e( 'Client ID', 'lean-sign-in-with-google' ); ?></label></th>
+							<td><?php self::text_field( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID, [ 'placeholder' => '1234567890-abc.apps.googleusercontent.com' ] ); ?></td>
 						</tr>
 						<tr>
-							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Client::OPTION_CLIENT_SECRET ); ?>"><?php esc_html_e( 'Client Secret', 'lean-sign-in-with-google' ); ?></label></th>
-							<td><?php self::secret_field( Lean_Google_Login_Client::OPTION_CLIENT_SECRET ); ?></td>
+							<th scope="row"><label for="<?php echo esc_attr( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_SECRET ); ?>"><?php esc_html_e( 'Client Secret', 'lean-sign-in-with-google' ); ?></label></th>
+							<td><?php self::secret_field( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_SECRET ); ?></td>
 						</tr>
 						<tr>
 							<th scope="row"><?php esc_html_e( 'Authorized redirect URI', 'lean-sign-in-with-google' ); ?></th>
 							<td>
 								<input type="text" class="regular-text code" readonly onfocus="this.select()"
-									value="<?php echo esc_attr( Lean_Google_Login_Client::redirect_uri() ); ?>" />
+									value="<?php echo esc_attr( Lean_Sign_In_With_Google_Client::redirect_uri() ); ?>" />
 								<p class="description"><?php esc_html_e( 'Add this exact URI to your OAuth client\'s "Authorized redirect URIs" in Google Cloud.', 'lean-sign-in-with-google' ); ?></p>
 							</td>
 						</tr>
@@ -405,11 +405,11 @@ class Lean_Google_Login_Settings {
 					<h2><?php esc_html_e( 'Access', 'lean-sign-in-with-google' ); ?></h2>
 					<table class="form-table" role="presentation">
 						<tr>
-							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS ); ?>"><?php esc_html_e( 'Allowed domains', 'lean-sign-in-with-google' ); ?></label></th>
+							<th scope="row"><label for="<?php echo esc_attr( Lean_Sign_In_With_Google_Auth::OPTION_ALLOWED_DOMAINS ); ?>"><?php esc_html_e( 'Allowed domains', 'lean-sign-in-with-google' ); ?></label></th>
 							<td>
 								<?php
 								self::text_field(
-									Lean_Google_Login_Auth::OPTION_ALLOWED_DOMAINS,
+									Lean_Sign_In_With_Google_Auth::OPTION_ALLOWED_DOMAINS,
 									[
 										'class'       => 'regular-text',
 										'placeholder' => 'example.com, example.org',
@@ -422,16 +422,16 @@ class Lean_Google_Login_Settings {
 						<tr>
 							<th scope="row"><?php esc_html_e( 'New users', 'lean-sign-in-with-google' ); ?></th>
 							<td>
-								<?php self::checkbox_field( Lean_Google_Login_Auth::OPTION_AUTO_CREATE, __( 'Create a WordPress account the first time an allowed Google user signs in', 'lean-sign-in-with-google' ), false ); ?>
+								<?php self::checkbox_field( Lean_Sign_In_With_Google_Auth::OPTION_AUTO_CREATE, __( 'Create a WordPress account the first time an allowed Google user signs in', 'lean-sign-in-with-google' ), false ); ?>
 								<p class="description"><?php esc_html_e( 'Off by default: only people who already have an account can sign in.', 'lean-sign-in-with-google' ); ?></p>
 							</td>
 						</tr>
 						<tr>
-							<th scope="row"><label for="<?php echo esc_attr( Lean_Google_Login_Auth::OPTION_DEFAULT_ROLE ); ?>"><?php esc_html_e( 'Role for new users', 'lean-sign-in-with-google' ); ?></label></th>
+							<th scope="row"><label for="<?php echo esc_attr( Lean_Sign_In_With_Google_Auth::OPTION_DEFAULT_ROLE ); ?>"><?php esc_html_e( 'Role for new users', 'lean-sign-in-with-google' ); ?></label></th>
 							<td>
 								<?php
 								self::select_field(
-									Lean_Google_Login_Auth::OPTION_DEFAULT_ROLE,
+									Lean_Sign_In_With_Google_Auth::OPTION_DEFAULT_ROLE,
 									self::role_choices(),
 									get_option( 'default_role', 'subscriber' ),
 									__( 'Applied only when new-user creation is enabled above.', 'lean-sign-in-with-google' )

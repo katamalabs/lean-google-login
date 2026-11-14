@@ -9,7 +9,7 @@
  * @package lean-sign-in-with-google
  */
 
-class Test_Lean_Google_Login_Client extends WP_UnitTestCase {
+class Test_Lean_Sign_In_With_Google_Client extends WP_UnitTestCase {
 
 	const CLIENT_ID     = '1234567890-abc.apps.googleusercontent.com';
 	const CLIENT_SECRET = 'GOCSPX-secret';
@@ -45,7 +45,7 @@ class Test_Lean_Google_Login_Client extends WP_UnitTestCase {
 		add_filter(
 			'pre_http_request',
 			function ( $preempt, $args, $url ) use ( $code, $body, &$hits ) {
-				if ( Lean_Google_Login_Client::TOKEN_URI === $url ) {
+				if ( Lean_Sign_In_With_Google_Client::TOKEN_URI === $url ) {
 					++$hits;
 					return [
 						'response' => [
@@ -67,11 +67,11 @@ class Test_Lean_Google_Login_Client extends WP_UnitTestCase {
 	// -------------------------------------------------------------------------
 
 	public function test_authorize_url_carries_the_login_parameters() {
-		update_option( Lean_Google_Login_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
+		update_option( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
 
-		$url = Lean_Google_Login_Client::authorize_url( 'https://site.example/wp-admin/admin-post.php?action=cb', 'state-123' );
+		$url = Lean_Sign_In_With_Google_Client::authorize_url( 'https://site.example/wp-admin/admin-post.php?action=cb', 'state-123' );
 
-		$this->assertStringStartsWith( Lean_Google_Login_Client::AUTH_URI . '?', $url );
+		$this->assertStringStartsWith( Lean_Sign_In_With_Google_Client::AUTH_URI . '?', $url );
 		$this->assertStringContainsString( 'response_type=code', $url );
 		$this->assertStringContainsString( 'access_type=online', $url );
 		$this->assertStringContainsString( 'prompt=select_account', $url );
@@ -86,9 +86,9 @@ class Test_Lean_Google_Login_Client extends WP_UnitTestCase {
 	}
 
 	public function test_authorize_url_includes_the_hd_hint_when_given() {
-		update_option( Lean_Google_Login_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
+		update_option( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
 
-		$url = Lean_Google_Login_Client::authorize_url( 'https://site.example/cb', 'st', 'example.com' );
+		$url = Lean_Sign_In_With_Google_Client::authorize_url( 'https://site.example/cb', 'st', 'example.com' );
 		$this->assertStringContainsString( 'hd=example.com', $url );
 	}
 
@@ -105,7 +105,7 @@ class Test_Lean_Google_Login_Client extends WP_UnitTestCase {
 				'sub'            => '117',
 			]
 		);
-		$claims = Lean_Google_Login_Client::claims_from_id_token( $token );
+		$claims = Lean_Sign_In_With_Google_Client::claims_from_id_token( $token );
 
 		$this->assertSame( 'user@example.com', $claims['email'] );
 		$this->assertSame( 'example.com', $claims['hd'] );
@@ -113,8 +113,8 @@ class Test_Lean_Google_Login_Client extends WP_UnitTestCase {
 	}
 
 	public function test_claims_from_id_token_returns_empty_on_garbage() {
-		$this->assertSame( [], Lean_Google_Login_Client::claims_from_id_token( 'not-a-jwt' ) );
-		$this->assertSame( [], Lean_Google_Login_Client::claims_from_id_token( self::b64url( 'x' ) . '.' . self::b64url( 'not-json' ) . '.sig' ) );
+		$this->assertSame( [], Lean_Sign_In_With_Google_Client::claims_from_id_token( 'not-a-jwt' ) );
+		$this->assertSame( [], Lean_Sign_In_With_Google_Client::claims_from_id_token( self::b64url( 'x' ) . '.' . self::b64url( 'not-json' ) . '.sig' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -122,8 +122,8 @@ class Test_Lean_Google_Login_Client extends WP_UnitTestCase {
 	// -------------------------------------------------------------------------
 
 	public function test_exchange_code_returns_the_claims_on_success() {
-		update_option( Lean_Google_Login_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
-		update_option( Lean_Google_Login_Client::OPTION_CLIENT_SECRET, self::CLIENT_SECRET );
+		update_option( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
+		update_option( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_SECRET, self::CLIENT_SECRET );
 
 		$id_token = self::id_token(
 			[
@@ -134,7 +134,7 @@ class Test_Lean_Google_Login_Client extends WP_UnitTestCase {
 		);
 		$this->mock_token( 200, (string) wp_json_encode( [ 'id_token' => $id_token ] ), $hits );
 
-		$claims = Lean_Google_Login_Client::exchange_code( 'auth-code', 'https://site.example/cb' );
+		$claims = Lean_Sign_In_With_Google_Client::exchange_code( 'auth-code', 'https://site.example/cb' );
 
 		$this->assertIsArray( $claims );
 		$this->assertSame( 'user@example.com', $claims['email'] );
@@ -143,24 +143,24 @@ class Test_Lean_Google_Login_Client extends WP_UnitTestCase {
 	}
 
 	public function test_exchange_code_reports_a_google_error() {
-		update_option( Lean_Google_Login_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
-		update_option( Lean_Google_Login_Client::OPTION_CLIENT_SECRET, self::CLIENT_SECRET );
+		update_option( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
+		update_option( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_SECRET, self::CLIENT_SECRET );
 
 		$this->mock_token( 400, '{"error":"invalid_grant","error_description":"Malformed auth code."}' );
 
-		$result = Lean_Google_Login_Client::exchange_code( 'bad-code', 'https://site.example/cb' );
+		$result = Lean_Sign_In_With_Google_Client::exchange_code( 'bad-code', 'https://site.example/cb' );
 
 		$this->assertWPError( $result );
 		$this->assertStringContainsString( 'Malformed auth code.', $result->get_error_message() );
 	}
 
 	public function test_exchange_code_errors_when_no_id_token_is_returned() {
-		update_option( Lean_Google_Login_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
-		update_option( Lean_Google_Login_Client::OPTION_CLIENT_SECRET, self::CLIENT_SECRET );
+		update_option( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_ID, self::CLIENT_ID );
+		update_option( Lean_Sign_In_With_Google_Client::OPTION_CLIENT_SECRET, self::CLIENT_SECRET );
 
 		$this->mock_token( 200, '{"access_token":"tok"}' );
 
-		$result = Lean_Google_Login_Client::exchange_code( 'auth-code', 'https://site.example/cb' );
+		$result = Lean_Sign_In_With_Google_Client::exchange_code( 'auth-code', 'https://site.example/cb' );
 		$this->assertWPError( $result );
 	}
 }

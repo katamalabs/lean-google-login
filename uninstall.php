@@ -12,12 +12,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-$lean_google_login_options = [
-	'lean_google_login_client_id',
-	'lean_google_login_client_secret',
-	'lean_google_login_allowed_domains',
-	'lean_google_login_auto_create',
-	'lean_google_login_default_role',
+$lean_sign_in_with_google_options = [
+	'lean_sign_in_with_google_client_id',
+	'lean_sign_in_with_google_client_secret',
+	'lean_sign_in_with_google_allowed_domains',
+	'lean_sign_in_with_google_auto_create',
+	'lean_sign_in_with_google_default_role',
 ];
 
 /**
@@ -26,7 +26,7 @@ $lean_google_login_options = [
  *
  * @param string[] $options Option names to delete.
  */
-function lean_google_login_uninstall_site( array $options ): void {
+function lean_sign_in_with_google_uninstall_site( array $options ): void {
 	global $wpdb;
 
 	foreach ( $options as $option ) {
@@ -46,14 +46,14 @@ if ( is_multisite() ) {
 			'fields' => 'ids',
 			'number' => 0,
 		]
-	) as $lean_google_login_blog_id ) {
-		switch_to_blog( (int) $lean_google_login_blog_id );
-		lean_google_login_uninstall_site( $lean_google_login_options );
+	) as $lean_sign_in_with_google_blog_id ) {
+		switch_to_blog( (int) $lean_sign_in_with_google_blog_id );
+		lean_sign_in_with_google_uninstall_site( $lean_sign_in_with_google_options );
 		restore_current_blog();
 	}
 } else {
-	lean_google_login_uninstall_site( $lean_google_login_options );
+	lean_sign_in_with_google_uninstall_site( $lean_sign_in_with_google_options );
 }
 
 // The Google-account link is user meta (global, one row per user), so remove it once.
-delete_metadata( 'user', 0, 'lean_google_login_sub', '', true );
+delete_metadata( 'user', 0, 'lean_sign_in_with_google_sub', '', true );

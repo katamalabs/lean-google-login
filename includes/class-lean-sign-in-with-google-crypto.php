@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Lean_Google_Login_Crypto {
+class Lean_Sign_In_With_Google_Crypto {
 
 	const PREFIX = 'lgl:v1:';
 	const CIPHER = 'aes-256-cbc';

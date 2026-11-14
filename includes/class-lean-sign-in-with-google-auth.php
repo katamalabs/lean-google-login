@@ -29,19 +29,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Lean_Google_Login_Auth {
+class Lean_Sign_In_With_Google_Auth {
 
-	const OPTION_ALLOWED_DOMAINS = 'lean_google_login_allowed_domains';
-	const OPTION_AUTO_CREATE     = 'lean_google_login_auto_create';
-	const OPTION_DEFAULT_ROLE    = 'lean_google_login_default_role';
+	const OPTION_ALLOWED_DOMAINS = 'lean_sign_in_with_google_allowed_domains';
+	const OPTION_AUTO_CREATE     = 'lean_sign_in_with_google_auto_create';
+	const OPTION_DEFAULT_ROLE    = 'lean_sign_in_with_google_default_role';
 
 	// The Google `sub` (stable account id) linked to a WP user, so a later login
 	// to the same email must come from the same Google account.
-	const META_SUB = 'lean_google_login_sub';
+	const META_SUB = 'lean_sign_in_with_google_sub';
 
 	// admin-post action that begins the flow (priv + nopriv). The callback action
 	// lives on the client class, since it is also the registered redirect URI.
-	const START_ACTION = 'lean_google_login_start';
+	const START_ACTION = 'lean_sign_in_with_google_start';
 
 	const TRANSIENT_PREFIX = 'lgl_state_';
 	const STATE_TTL        = 600;
@@ -49,8 +49,8 @@ class Lean_Google_Login_Auth {
 	public static function init(): void {
 		add_action( 'admin_post_nopriv_' . self::START_ACTION, [ static::class, 'handle_start' ] );
 		add_action( 'admin_post_' . self::START_ACTION, [ static::class, 'handle_start' ] );
-		add_action( 'admin_post_nopriv_' . Lean_Google_Login_Client::CALLBACK_ACTION, [ static::class, 'handle_callback' ] );
-		add_action( 'admin_post_' . Lean_Google_Login_Client::CALLBACK_ACTION, [ static::class, 'handle_callback' ] );
+		add_action( 'admin_post_nopriv_' . Lean_Sign_In_With_Google_Client::CALLBACK_ACTION, [ static::class, 'handle_callback' ] );
+		add_action( 'admin_post_' . Lean_Sign_In_With_Google_Client::CALLBACK_ACTION, [ static::class, 'handle_callback' ] );
 
 		add_action( 'login_form', [ static::class, 'render_button' ] );
 		add_action( 'login_enqueue_scripts', [ static::class, 'enqueue_button_css' ] );
@@ -67,7 +67,7 @@ class Lean_Google_Login_Auth {
 	 * screen.
 	 */
 	public static function handle_start(): void {
-		if ( ! Lean_Google_Login_Client::is_configured() ) {
+		if ( ! Lean_Sign_In_With_Google_Client::is_configured() ) {
 			self::redirect_to_login( 'config', __( 'Google sign-in is not configured yet.', 'lean-sign-in-with-google' ) );
 		}
 
@@ -89,7 +89,7 @@ class Lean_Google_Login_Auth {
 		nocache_headers();
 		// Deliberately wp_redirect, not wp_safe_redirect: the target is Google's
 		// consent screen, an external host wp_safe_redirect would reject.
-		wp_redirect( Lean_Google_Login_Client::authorize_url( Lean_Google_Login_Client::redirect_uri(), $state, $hd ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- External OAuth consent URL.
+		wp_redirect( Lean_Sign_In_With_Google_Client::authorize_url( Lean_Sign_In_With_Google_Client::redirect_uri(), $state, $hd ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- External OAuth consent URL.
 		exit;
 	}
 
@@ -124,7 +124,7 @@ class Lean_Google_Login_Auth {
 			self::redirect_to_login( 'google', __( 'Google returned no authorization code.', 'lean-sign-in-with-google' ) );
 		}
 
-		$claims = Lean_Google_Login_Client::exchange_code( $code, Lean_Google_Login_Client::redirect_uri() );
+		$claims = Lean_Sign_In_With_Google_Client::exchange_code( $code, Lean_Sign_In_With_Google_Client::redirect_uri() );
 		if ( is_wp_error( $claims ) ) {
 			self::redirect_to_login( 'google', $claims->get_error_message() );
 		}
@@ -159,22 +159,22 @@ class Lean_Google_Login_Auth {
 	public static function authenticate_claims( array $claims ) {
 		$email = isset( $claims['email'] ) ? sanitize_email( (string) $claims['email'] ) : '';
 		if ( '' === $email ) {
-			return new WP_Error( 'lean_google_login_no_email', __( 'Google did not return an email address.', 'lean-sign-in-with-google' ) );
+			return new WP_Error( 'lean_sign_in_with_google_no_email', __( 'Google did not return an email address.', 'lean-sign-in-with-google' ) );
 		}
 
 		if ( ! self::claim_is_true( $claims['email_verified'] ?? false ) ) {
-			return new WP_Error( 'lean_google_login_unverified', __( 'Google has not verified this email address, so it cannot be used to sign in.', 'lean-sign-in-with-google' ) );
+			return new WP_Error( 'lean_sign_in_with_google_unverified', __( 'Google has not verified this email address, so it cannot be used to sign in.', 'lean-sign-in-with-google' ) );
 		}
 
 		// The stable Google account id. It is the primary key for an established
 		// link, so a login with no `sub` can neither be matched nor bound.
 		$sub = isset( $claims['sub'] ) ? trim( (string) $claims['sub'] ) : '';
 		if ( '' === $sub ) {
-			return new WP_Error( 'lean_google_login_no_sub', __( 'Google did not return an account identifier.', 'lean-sign-in-with-google' ) );
+			return new WP_Error( 'lean_sign_in_with_google_no_sub', __( 'Google did not return an account identifier.', 'lean-sign-in-with-google' ) );
 		}
 
 		if ( ! self::domain_allowed( $claims, $email ) ) {
-			return new WP_Error( 'lean_google_login_domain', __( 'This email domain is not permitted to sign in here.', 'lean-sign-in-with-google' ) );
+			return new WP_Error( 'lean_sign_in_with_google_domain', __( 'This email domain is not permitted to sign in here.', 'lean-sign-in-with-google' ) );
 		}
 
 		$user = self::resolve_user( $claims, $email, $sub );
@@ -199,13 +199,13 @@ class Lean_Google_Login_Auth {
 		 * @param WP_User              $user   The resolved user.
 		 * @param array<string, mixed> $claims The Google id_token claims.
 		 */
-		$user = apply_filters( 'lean_google_login_authenticated_user', $user, $claims );
+		$user = apply_filters( 'lean_sign_in_with_google_authenticated_user', $user, $claims );
 
 		if ( is_wp_error( $user ) ) {
 			return $user;
 		}
 		if ( ! $user instanceof WP_User ) {
-			return new WP_Error( 'lean_google_login_rejected', __( 'Sign-in was rejected.', 'lean-sign-in-with-google' ) );
+			return new WP_Error( 'lean_sign_in_with_google_rejected', __( 'Sign-in was rejected.', 'lean-sign-in-with-google' ) );
 		}
 		return $user;
 	}
@@ -235,7 +235,7 @@ class Lean_Google_Login_Auth {
 			if ( '' !== $other ) {
 				// This email's account is already linked to a different Google
 				// account (had it been this one, find_user_by_sub would have hit).
-				return new WP_Error( 'lean_google_login_sub_mismatch', __( 'This Google account does not match the WordPress account registered to that email address.', 'lean-sign-in-with-google' ) );
+				return new WP_Error( 'lean_sign_in_with_google_sub_mismatch', __( 'This Google account does not match the WordPress account registered to that email address.', 'lean-sign-in-with-google' ) );
 			}
 
 			// First Google sign-in for a pre-existing account. Binding it hands
@@ -244,15 +244,15 @@ class Lean_Google_Login_Auth {
 			// mailbox can change owner while the Google identity persists, which
 			// would let a later owner take over the WordPress account.
 			if ( ! self::google_is_authoritative( $claims, $email ) ) {
-				return new WP_Error( 'lean_google_login_link_unverified', __( 'This email address cannot be automatically linked to the existing account. Sign in to that account first and link Google from your profile.', 'lean-sign-in-with-google' ) );
+				return new WP_Error( 'lean_sign_in_with_google_link_unverified', __( 'This email address cannot be automatically linked to the existing account. Sign in to that account first and link Google from your profile.', 'lean-sign-in-with-google' ) );
 			}
 
 			update_user_meta( $existing->ID, self::META_SUB, $sub );
 			return $existing;
 		}
 
-		if ( ! Lean_Google_Login_Config::get_bool( self::OPTION_AUTO_CREATE, false ) ) {
-			return new WP_Error( 'lean_google_login_no_account', __( 'No WordPress account exists for that email address.', 'lean-sign-in-with-google' ) );
+		if ( ! Lean_Sign_In_With_Google_Config::get_bool( self::OPTION_AUTO_CREATE, false ) ) {
+			return new WP_Error( 'lean_sign_in_with_google_no_account', __( 'No WordPress account exists for that email address.', 'lean-sign-in-with-google' ) );
 		}
 
 		return self::create_user( $email, $claims, $sub );
@@ -309,7 +309,7 @@ class Lean_Google_Login_Auth {
 		 * @param array<string, mixed> $claims        The id_token claims.
 		 * @param string               $email         The sanitized email address.
 		 */
-		return (bool) apply_filters( 'lean_google_login_email_is_authoritative', $authoritative, $claims, $email );
+		return (bool) apply_filters( 'lean_sign_in_with_google_email_is_authoritative', $authoritative, $claims, $email );
 	}
 
 	/**
@@ -334,10 +334,10 @@ class Lean_Google_Login_Auth {
 
 		if ( is_multisite() ) {
 			if ( 1 === (int) $user->deleted || 1 === (int) $user->spam ) {
-				return new WP_Error( 'lean_google_login_account_blocked', __( 'This account is not permitted to sign in.', 'lean-sign-in-with-google' ) );
+				return new WP_Error( 'lean_sign_in_with_google_account_blocked', __( 'This account is not permitted to sign in.', 'lean-sign-in-with-google' ) );
 			}
 			if ( ! is_user_member_of_blog( $user->ID, get_current_blog_id() ) ) {
-				return new WP_Error( 'lean_google_login_not_a_member', __( 'This account is not a member of this site.', 'lean-sign-in-with-google' ) );
+				return new WP_Error( 'lean_sign_in_with_google_not_a_member', __( 'This account is not a member of this site.', 'lean-sign-in-with-google' ) );
 			}
 		}
 
@@ -348,7 +348,7 @@ class Lean_Google_Login_Auth {
 			return $checked;
 		}
 		if ( ! $checked instanceof WP_User ) {
-			return new WP_Error( 'lean_google_login_rejected', __( 'Sign-in was rejected.', 'lean-sign-in-with-google' ) );
+			return new WP_Error( 'lean_sign_in_with_google_rejected', __( 'Sign-in was rejected.', 'lean-sign-in-with-google' ) );
 		}
 		return $checked;
 	}
@@ -360,7 +360,7 @@ class Lean_Google_Login_Auth {
 	 * Workspace membership is asserted by the `hd` (hosted-domain) claim, not by
 	 * the email domain: Google warns that a matching email domain alone does not
 	 * prove organizational membership. A matching verified email domain is
-	 * therefore accepted only when the `lean_google_login_allow_email_domain_match`
+	 * therefore accepted only when the `lean_sign_in_with_google_allow_email_domain_match`
 	 * filter opts into that weaker policy.
 	 *
 	 * @param array<string, mixed> $claims The id_token claims.
@@ -386,7 +386,7 @@ class Lean_Google_Login_Auth {
 		 * @param array<string, mixed> $claims The id_token claims.
 		 * @param string               $email  The sanitized email address.
 		 */
-		if ( apply_filters( 'lean_google_login_allow_email_domain_match', false, $claims, $email ) ) {
+		if ( apply_filters( 'lean_sign_in_with_google_allow_email_domain_match', false, $claims, $email ) ) {
 			$at           = strrchr( $email, '@' );
 			$email_domain = false === $at ? '' : strtolower( substr( $at, 1 ) );
 			if ( '' !== $email_domain && in_array( $email_domain, $allowed, true ) ) {
@@ -405,7 +405,7 @@ class Lean_Google_Login_Auth {
 	 * @return string[]
 	 */
 	public static function allowed_domains(): array {
-		$raw   = Lean_Google_Login_Config::get_string( self::OPTION_ALLOWED_DOMAINS );
+		$raw   = Lean_Sign_In_With_Google_Config::get_string( self::OPTION_ALLOWED_DOMAINS );
 		$parts = preg_split( '/[\s,]+/', $raw, -1, PREG_SPLIT_NO_EMPTY );
 		if ( ! is_array( $parts ) ) {
 			return [];
@@ -474,7 +474,7 @@ class Lean_Google_Login_Auth {
 		}
 
 		$user = get_user_by( 'id', $user_id );
-		return $user instanceof WP_User ? $user : new WP_Error( 'lean_google_login_create_failed', __( 'The new account could not be loaded after creation.', 'lean-sign-in-with-google' ) );
+		return $user instanceof WP_User ? $user : new WP_Error( 'lean_sign_in_with_google_create_failed', __( 'The new account could not be loaded after creation.', 'lean-sign-in-with-google' ) );
 	}
 
 	/**
@@ -548,7 +548,7 @@ class Lean_Google_Login_Auth {
 	 * auto-provision an administrator either.
 	 */
 	public static function default_role(): string {
-		$role = Lean_Google_Login_Config::get_string( self::OPTION_DEFAULT_ROLE );
+		$role = Lean_Sign_In_With_Google_Config::get_string( self::OPTION_DEFAULT_ROLE );
 		if ( '' !== $role && self::is_role_assignable( $role ) ) {
 			return $role;
 		}
@@ -581,7 +581,7 @@ class Lean_Google_Login_Auth {
 	 * Nothing is shown until an OAuth client is configured.
 	 */
 	public static function render_button(): void {
-		if ( ! Lean_Google_Login_Client::is_configured() ) {
+		if ( ! Lean_Sign_In_With_Google_Client::is_configured() ) {
 			return;
 		}
 
@@ -600,7 +600,7 @@ class Lean_Google_Login_Auth {
 		 *
 		 * @param string $label The button text.
 		 */
-		$label = (string) apply_filters( 'lean_google_login_button_text', __( 'Sign in with Google', 'lean-sign-in-with-google' ) );
+		$label = (string) apply_filters( 'lean_sign_in_with_google_button_text', __( 'Sign in with Google', 'lean-sign-in-with-google' ) );
 		?>
 		<div class="lgl-wrap">
 			<div class="lgl-divider"><span><?php esc_html_e( 'or', 'lean-sign-in-with-google' ); ?></span></div>
@@ -620,7 +620,7 @@ class Lean_Google_Login_Auth {
 	}
 
 	public static function enqueue_button_css(): void {
-		wp_enqueue_style( 'lean-sign-in-with-google', LEAN_GOOGLE_LOGIN_URL . 'css/login.css', [], LEAN_GOOGLE_LOGIN_VERSION );
+		wp_enqueue_style( 'lean-sign-in-with-google', LEAN_SIGN_IN_WITH_GOOGLE_URL . 'css/login.css', [], LEAN_SIGN_IN_WITH_GOOGLE_VERSION );
 	}
 
 	/**

@@ -43,9 +43,9 @@ Login needs only the **non-sensitive** `openid`, `email`, and `profile` scopes. 
 The client ID, secret, and allowed domains can each be a constant instead of a stored option. The constant always wins, and secrets defined this way are used as-is and never written to the database.
 
 ```php
-define( 'LEAN_GOOGLE_LOGIN_CLIENT_ID', getenv( 'GOOGLE_CLIENT_ID' ) );
-define( 'LEAN_GOOGLE_LOGIN_CLIENT_SECRET', getenv( 'GOOGLE_CLIENT_SECRET' ) );
-define( 'LEAN_GOOGLE_LOGIN_ALLOWED_DOMAINS', 'example.com' );
+define( 'LEAN_SIGN_IN_WITH_GOOGLE_CLIENT_ID', getenv( 'GOOGLE_CLIENT_ID' ) );
+define( 'LEAN_SIGN_IN_WITH_GOOGLE_CLIENT_SECRET', getenv( 'GOOGLE_CLIENT_SECRET' ) );
+define( 'LEAN_SIGN_IN_WITH_GOOGLE_ALLOWED_DOMAINS', 'example.com' );
 ```
 
 ## Development

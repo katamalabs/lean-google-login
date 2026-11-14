@@ -6,13 +6,13 @@
  * pinned in `wp-config.php` instead of the database — the usual want on a
  * self-managed, version-controlled site with more than one environment:
  *
- *     define( 'LEAN_GOOGLE_LOGIN_CLIENT_ID', '1234.apps.googleusercontent.com' );
- *     define( 'LEAN_GOOGLE_LOGIN_CLIENT_SECRET', getenv( 'GOOGLE_OAUTH_SECRET' ) );
- *     define( 'LEAN_GOOGLE_LOGIN_ALLOWED_DOMAINS', 'example.com' );
+ *     define( 'LEAN_SIGN_IN_WITH_GOOGLE_CLIENT_ID', '1234.apps.googleusercontent.com' );
+ *     define( 'LEAN_SIGN_IN_WITH_GOOGLE_CLIENT_SECRET', getenv( 'GOOGLE_OAUTH_SECRET' ) );
+ *     define( 'LEAN_SIGN_IN_WITH_GOOGLE_ALLOWED_DOMAINS', 'example.com' );
  *
  * The constant name is simply the option name uppercased, so a new setting
  * gets constant support for free. A secret held in a constant is plaintext by
- * definition and is never run through Lean_Google_Login_Crypto.
+ * definition and is never run through Lean_Sign_In_With_Google_Crypto.
  *
  * A constant-backed setting is locked: the settings page renders it read-only
  * and its sanitize callback leaves the stored option untouched, so the two
@@ -28,14 +28,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Lean_Google_Login_Config {
+class Lean_Sign_In_With_Google_Config {
 
 	/**
-	 * Plugin-infrastructure constants that share the LEAN_GOOGLE_LOGIN_ prefix
+	 * Plugin-infrastructure constants that share the LEAN_SIGN_IN_WITH_GOOGLE_ prefix
 	 * but are not settings. No option is named after any of them; the guard just
 	 * means a future one can't silently start overriding a setting.
 	 */
-	private const RESERVED = [ 'LEAN_GOOGLE_LOGIN_VERSION', 'LEAN_GOOGLE_LOGIN_FILE', 'LEAN_GOOGLE_LOGIN_DIR', 'LEAN_GOOGLE_LOGIN_URL' ];
+	private const RESERVED = [ 'LEAN_SIGN_IN_WITH_GOOGLE_VERSION', 'LEAN_SIGN_IN_WITH_GOOGLE_FILE', 'LEAN_SIGN_IN_WITH_GOOGLE_DIR', 'LEAN_SIGN_IN_WITH_GOOGLE_URL' ];
 
 	public static function constant_name( string $option ): string {
 		return strtoupper( $option );
@@ -96,7 +96,7 @@ class Lean_Google_Login_Config {
 		if ( self::is_constant( $option ) ) {
 			return trim( (string) constant( self::constant_name( $option ) ) );
 		}
-		return Lean_Google_Login_Crypto::decrypt( (string) self::stored( $option, '' ) );
+		return Lean_Sign_In_With_Google_Crypto::decrypt( (string) self::stored( $option, '' ) );
 	}
 
 	/**

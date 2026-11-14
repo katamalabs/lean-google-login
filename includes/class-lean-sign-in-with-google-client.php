@@ -22,10 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Lean_Google_Login_Client {
+class Lean_Sign_In_With_Google_Client {
 
-	const OPTION_CLIENT_ID     = 'lean_google_login_client_id';
-	const OPTION_CLIENT_SECRET = 'lean_google_login_client_secret';
+	const OPTION_CLIENT_ID     = 'lean_sign_in_with_google_client_id';
+	const OPTION_CLIENT_SECRET = 'lean_sign_in_with_google_client_secret';
 
 	// Non-sensitive scopes only: identity, nothing else. `openid email` give the
 	// verified address and the stable `sub`; `profile` gives the display name.
@@ -34,18 +34,18 @@ class Lean_Google_Login_Client {
 	const TOKEN_URI = 'https://oauth2.googleapis.com/token';
 
 	// admin-post action Google is pointed back at; also the registered redirect URI.
-	const CALLBACK_ACTION = 'lean_google_login_callback';
+	const CALLBACK_ACTION = 'lean_sign_in_with_google_callback';
 
 	// -------------------------------------------------------------------------
 	// Configuration
 	// -------------------------------------------------------------------------
 
 	public static function client_id(): string {
-		return Lean_Google_Login_Config::get_string( self::OPTION_CLIENT_ID );
+		return Lean_Sign_In_With_Google_Config::get_string( self::OPTION_CLIENT_ID );
 	}
 
 	public static function client_secret(): string {
-		return Lean_Google_Login_Config::get_secret( self::OPTION_CLIENT_SECRET );
+		return Lean_Sign_In_With_Google_Config::get_secret( self::OPTION_CLIENT_SECRET );
 	}
 
 	/** Whether the plugin has an OAuth client to authenticate against. */
@@ -171,12 +171,12 @@ class Lean_Google_Login_Client {
 				? (string) $body['error_description']
 				: wp_remote_retrieve_response_message( $response );
 			/* translators: 1: HTTP status code, 2: Google error message. */
-			return new WP_Error( 'lean_google_login_exchange_http_' . $http, sprintf( __( 'Google refused the sign-in (HTTP %1$d): %2$s', 'lean-sign-in-with-google' ), $http, $message ) );
+			return new WP_Error( 'lean_sign_in_with_google_exchange_http_' . $http, sprintf( __( 'Google refused the sign-in (HTTP %1$d): %2$s', 'lean-sign-in-with-google' ), $http, $message ) );
 		}
 
 		$claims = self::claims_from_id_token( (string) $body['id_token'] );
 		if ( empty( $claims ) ) {
-			return new WP_Error( 'lean_google_login_no_claims', __( 'Google returned a sign-in token that could not be read.', 'lean-sign-in-with-google' ) );
+			return new WP_Error( 'lean_sign_in_with_google_no_claims', __( 'Google returned a sign-in token that could not be read.', 'lean-sign-in-with-google' ) );
 		}
 
 		return $claims;
